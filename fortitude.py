@@ -481,6 +481,15 @@ class FortitudeGame:
                 return ("joker", int(idx))
             return ("cancel", None)
         return ("cancel", None)
+    
+    def add_defense_card(self, p: Player) -> None:
+        """Adds a new face-down numeric defense card to the player."""
+        while True:
+            c = self.draw_card()
+            if c.is_numeric():
+                p.defense.append(DefenseSlot(card=c, face_up=False, destroyed=False))
+                return
+
 
     def play_turn(self, p_idx: int) -> Optional[int]:
         """
@@ -560,6 +569,22 @@ class FortitudeGame:
                 self.update_king_exposure(defender)
 
                 card = p.offense[idx] if src == "offense" else p.jokers[idx]
+
+                # ---- QUEEN: add a defense card ----
+                if src == "offense" and card.rank == "Q":
+                    # consume the Queen
+                    p.offense.pop(idx)
+
+                    print(f"{p.name} plays a Queen to reinforce their defenses.")
+
+                    # add a new defense card
+                    self.add_defense_card(p)
+
+                    # refill offense hand
+                    self.refill_offense(p)
+
+                    # playing a Queen ends the turn (it is the offensive action)
+                    return self.check_game_end()
 
                 # Apply restrictions: "An opponent may attack using any offense card ... that is not a joker, face card, or ace."
                 # So NORMAL attacks on defense must use numeric cards only.
@@ -782,12 +807,220 @@ class FortitudeGame:
 
             self.turn_idx = self.next_living(self.turn_idx)
 
+    # ---- Game intro ----
+    def show_intro(self):
+        print(r"""
+        ███████╗ ██████╗ ██████╗ ████████╗██╗████████╗██╗   ██╗██████╗ ███████╗
+        ██╔════╝██╔═══██╗██╔══██╗╚══██╔══╝██║╚══██╔══╝██║   ██║██╔══██╗██╔════╝
+        █████╗  ██║   ██║██████╔╝   ██║   ██║   ██║   ██║   ██║██║  ██║█████╗
+        ██╔══╝  ██║   ██║██╔══██╗   ██║   ██║   ██║   ██║   ██║██║  ██║██╔══╝
+        ██║     ╚██████╔╝██║  ██║   ██║   ██║   ██║   ╚██████╔╝██████╔╝███████╗
+        ╚═╝      ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚═╝   ╚═╝    ╚═════╝ ╚═════╝ ╚══════╝
+        """)
+            
+    def show_instructions(self):
+        print("""
+        FORTITUDE
+        A multiplayer strategy card game of kings, chance, bargaining, and nerve.
+
+        OBJECTIVE
+        ---------
+        Be the last player with a living King.
+
+        Alternate win condition:
+        A player who collects ALL Jokers in the game immediately wins.
+
+        COMPONENTS
+        ----------
+        - Conceptual standard 52-card deck (cards are drawn WITH replacement)
+        - Jokers: exactly one Joker per player
+        - 2–6 players recommended
+
+        CARD TYPES
+        ----------
+        Numeric Cards:
+        - Ranks 2–10
+        - Used for defense and most attacks
+        - Higher value defeats lower value
+
+        Face Cards:
+        - Jack (J): special defensive utility in tie situations
+        - Queen (Q): defense regeneration via conversion
+        - King (K): blocks Ace attacks or converts upward
+        - Ace (A): executes or renews Kings
+
+        Jokers:
+        - Tracked separately from offense hand
+        - Used in conversions, trading, and as an alternate win condition
+
+        SETUP
+        -----
+        Each player begins with:
+        - 1 King placed at the center of their board
+        - 4 Defense cards (numeric only), placed face down
+        - 4 Offense cards (any rank)
+        - Jokers drawn into offense are set aside and replaced
+
+        Defense cards may not be Jokers, Face cards, or Aces.
+
+        TURN STRUCTURE
+        --------------
+        On your turn, in order, you may:
+        1) Trade cards (optional, repeatable)
+        2) Convert cards (optional, repeatable)
+        3) Play exactly ONE offensive card
+        4) Refill offense hand to 4 cards
+
+        Your turn ends immediately after playing an offensive card.
+
+        TRADING
+        -------
+        - Trading is voluntary and unrestricted
+        - Any number of trades per turn
+        - Legal trades:
+            * Offense-for-offense (1-for-1)
+            * Joker-for-offense
+            * Offense-for-joker
+        - All players must end with exactly 4 offense cards
+        - Jokers do not count toward offense size
+
+        CARD CONVERSIONS
+        ----------------
+        Conversions may occur at any time during your turn before attacking.
+
+        Legal conversions:
+        - Two identical numeric cards -> Jack
+        - Two Jacks -> Queen
+        - Two Queens -> King
+        - Two Kings -> Ace
+        - Joker + any face card (J/Q/K) -> Ace
+
+        Converted cards are discarded; the resulting card enters offense.
+        Players must still maintain exactly 4 offense cards.
+
+        ATTACKING DEFENSES
+        ------------------
+        You may attack ONE defense card of another player per turn.
+
+        Valid attack cards:
+        - Numeric cards ONLY
+        - Jokers, Face cards, and Aces may NOT attack defenses
+
+        Attack resolution:
+        Let A = attack value, D = defense value
+
+        - If A < D:
+            Attack fails; offense card is discarded.
+            Defense remains and is flipped face up.
+
+        - If A > D:
+            Attack succeeds; both cards are discarded.
+            Defense is destroyed.
+
+        - If A == D (tie):
+            Attack card is discarded.
+            Defense flips face up.
+            Defender must immediately respond.
+
+        TIE DEFENSE
+        -----------
+        To defend a tie, the defender must play ONE offense card:
+
+        Valid responses:
+        - A numeric card with value strictly greater than the attacker
+        - OR a Jack (auto-defends regardless of value)
+
+        Illegal responses:
+        - Queens, Kings, Aces, Jokers
+
+        Response cards are always discarded.
+
+        If the defender fails or passes, the defense is destroyed.
+
+        KING EXPOSURE
+        -------------
+        A King becomes exposed when ALL four defenses are destroyed.
+
+        Exposed Kings:
+        - May ONLY be attacked with an Ace
+        - Cannot be attacked by any other card
+
+        ACE ATTACKS (KING EXECUTION)
+        ----------------------------
+        When an exposed King is attacked with an Ace:
+        - The Ace becomes pending
+        - The defending player is not eliminated immediately
+        - The defender must respond by their next turn
+
+        DEFENDING A PENDING ACE
+        -----------------------
+        On their next turn, the defending player must choose ONE:
+
+        1) Block with a King:
+            Discard one King from offense.
+            The Ace is neutralized.
+
+        2) Replace the King with an Ace:
+            Discard one Ace from offense.
+            The King remains in play (renewed).
+
+        3) Fail to defend:
+            The player is eliminated.
+
+        Failure to respond results in elimination.
+
+        JOKERS
+        ------
+        - Jokers are drawn separately from offense
+        - Jokers may be traded freely
+        - Jokers may be used in conversions
+        - Collecting ALL Jokers in the game results in an immediate win
+
+        This condition overrides all others, including pending Ace attacks.
+
+        ELIMINATION
+        -----------
+        A player is eliminated if:
+        - Their exposed King is successfully executed by an Ace
+        - They fail to defend against a pending Ace
+        - They voluntarily concede
+
+        Eliminated players are removed from turn order.
+
+        WINNING
+        -------
+        The game ends immediately when:
+        - Only one player remains alive
+        - OR a player holds all Jokers in the game
+        """)
+
+
 
 # -----------------------------
 # Main entrypoint
 # -----------------------------
 
 def main():
+    menu_game = FortitudeGame([])
+
+    menu_game.show_intro()
+
+    while True:
+        print("1) Start game")
+        print("2) View instructions")
+        print("0) Quit")
+        choice = input("Choose: ").strip()
+
+        if choice == "2":
+            menu_game.show_instructions()
+            input("\nPress Enter to return to menu...")
+        elif choice == "1":
+            break
+        elif choice == "0":
+            return
+        else:
+            print("Invalid choice.\n")
+
     print("Fortitude setup")
     n = input("Number of players: ").strip()
     if not n.isdigit() or int(n) < 2:
@@ -805,6 +1038,7 @@ def main():
 
     game = FortitudeGame(names, seed=seed)
     game.run()
+
 
 if __name__ == "__main__":
     main()
