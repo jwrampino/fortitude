@@ -354,104 +354,145 @@ class FortitudeGame:
 
     def trade_menu(self, p_idx: int) -> None:
         """
-        Lightweight trading:
-          - trade 1-for-1 offense cards
-          - trade a joker for a single offense card (or vice versa)
-        Enforces each side ends with 4 offense cards (jokers are separate pool).
+        Propose a specific-for-specific trade with consent and hidden hands.
+
+        Flow:
+        1) Initiator selects a specific card they control (offense or joker).
+        2) Initiator requests a specific kind of card (rank or JOKER).
+        3) Target accepts or rejects without revealing their hand.
+        4) If accepted, target privately selects a matching card to give.
+        5) Swap occurs; offense hands are refilled to 4.
         """
         p = self.players[p_idx]
+        valid_ranks = set(RANKS_52)
+
         while True:
             print("Trading:")
-            print("  1) Trade offense-for-offense (1 card each)")
-            print("  2) Trade your joker for their offense card")
-            print("  3) Trade your offense card for their joker")
+            print("  1) Propose a trade")
             print("  0) Done")
             choice = input("Choose: ").strip()
             if choice == "0":
                 return
+            if choice != "1":
+                print("Invalid.\n")
+                continue
 
-            # pick partner
+            # --- pick partner ---
             self.show_public_board()
-            t = input("Target player index: ").strip()
+            t = input("Propose trade to which player index? ").strip()
             if not t.isdigit():
                 print("Invalid.\n")
                 continue
             t = int(t)
-            if not (0 <= t < self.n) or (not self.players[t].alive) or t == p_idx:
+            if not (0 <= t < self.n) or t == p_idx or not self.players[t].alive:
                 print("Invalid target.\n")
                 continue
+
             q = self.players[t]
 
-            if choice == "1":
-                self.show_private_hand(p)
-                self.show_private_hand(q)
-                a = input("Your offense index: ").strip()
-                b = input("Their offense index: ").strip()
-                if not (a.isdigit() and b.isdigit()):
-                    print("Invalid.\n")
-                    continue
-                a, b = int(a), int(b)
-                if not (0 <= a < 4 and 0 <= b < 4):
-                    print("Indices must be 0..3.\n")
-                    continue
-                p.offense[a], q.offense[b] = q.offense[b], p.offense[a]
-                print("Traded.\n")
+            # --- OFFER: pick a specific card you control ---
+            self.show_private_hand(p)
+            print("Select a card to OFFER:")
+            print("  O <idx>  → offense card index (0..3)")
+            print("  J <idx>  → joker index (0..n-1)")
+            raw = input("Offer (e.g., O 2 or J 0): ").strip().upper().split()
+
+            if len(raw) != 2:
+                print("Invalid format.\n")
                 continue
 
-            if choice == "2":
-                if not p.jokers:
-                    print("You have no jokers.\n")
+            src, idx = raw
+            if not idx.isdigit():
+                print("Invalid index.\n")
+                continue
+            idx = int(idx)
+
+            if src == "O":
+                if not (0 <= idx < len(p.offense)):
+                    print("Invalid offense index.\n")
                     continue
-                self.show_private_hand(q)
-                b = input("Their offense index to receive: ").strip()
-                if not b.isdigit():
-                    print("Invalid.\n")
+                offered_card = p.offense[idx]
+                offer_kind = ("offense", idx)
+            elif src == "J":
+                if not (0 <= idx < len(p.jokers)):
+                    print("Invalid joker index.\n")
                     continue
-                b = int(b)
-                if not (0 <= b < 4):
-                    print("Index must be 0..3.\n")
-                    continue
-                # swap: give joker, receive offense card
-                p.jokers.pop()
-                p.offense.append(q.offense.pop(b))
-                # q draws to refill (since they lost offense)
-                self.refill_offense(q)
-                # p must go back to 4 offense (since appended makes 5)
-                # force them to discard one extra offense of their choice
-                while len(p.offense) > 4:
-                    self.show_private_hand(p)
-                    d = input("You now have 5 offense cards; discard one index: ").strip()
-                    if d.isdigit() and 0 <= int(d) < len(p.offense):
-                        p.offense.pop(int(d))
-                    else:
-                        print("Invalid discard.")
-                print("Traded joker for offense.\n")
+                offered_card = p.jokers[idx]
+                offer_kind = ("joker", idx)
+            else:
+                print("Invalid source.\n")
                 continue
 
-            if choice == "3":
+            # --- REQUEST: specify what you want ---
+            print("\nWhat do you REQUEST?")
+            print("  - Rank: 2–10, J, Q, K, A")
+            print("  - Or type: JOKER")
+            req = input("Request: ").strip().upper()
+
+            if req == "1":
+                req = "A"
+
+            if req != "JOKER" and req not in valid_ranks:
+                print("Invalid request.\n")
+                continue
+
+            # --- CONSENT ---
+            print(f"\n{q.name}, trade proposal from {p.name}:")
+            print(f"  Offer: {offered_card.short()}")
+            print(f"  Request: {'🃏' if req == 'JOKER' else req}")
+            consent = input("Accept? (y/n): ").strip().lower()
+
+            if consent != "y":
+                print("Trade declined.\n")
+                continue
+
+            # --- TARGET privately selects matching card ---
+            self.show_private_hand(q)
+
+            if req == "JOKER":
                 if not q.jokers:
-                    print("They have no jokers.\n")
+                    print("Trade fails: no joker to give.\n")
                     continue
-                self.show_private_hand(p)
-                a = input("Your offense index to give: ").strip()
-                if not a.isdigit():
-                    print("Invalid.\n")
+                b = input(f"Choose joker index to give (0..{len(q.jokers)-1}): ").strip()
+                if not b.isdigit() or not (0 <= int(b) < len(q.jokers)):
+                    print("Invalid selection. Trade canceled.\n")
                     continue
-                a = int(a)
-                if not (0 <= a < 4):
-                    print("Index must be 0..3.\n")
+                received_card = q.jokers.pop(int(b))
+            else:
+                matches = [i for i, c in enumerate(q.offense) if c.rank == req]
+                if not matches:
+                    print("Trade fails: no matching card to give.\n")
                     continue
-                # swap: give offense, receive joker
-                given = p.offense.pop(a)
-                p.jokers.append(q.jokers.pop())
-                # p refills offense
-                self.refill_offense(p)
-                # q must take offense to keep their offense count at 4 (they lost a joker, offense unchanged)
-                # so nothing required for q.
-                print(f"Gave {given.short()} for a joker.\n")
-                continue
+                print(f"Matching offense indices: {matches}")
+                b = input("Choose index to give: ").strip()
+                if not b.isdigit() or int(b) not in matches:
+                    print("Invalid selection. Trade canceled.\n")
+                    continue
+                received_card = q.offense.pop(int(b))
 
-            print("Unknown choice.\n")
+            # --- EXECUTE SWAP ---
+            if offer_kind[0] == "offense":
+                p.offense.pop(offer_kind[1])
+            else:
+                p.jokers.pop(offer_kind[1])
+
+            # deliver cards
+            if req == "JOKER":
+                p.jokers.append(received_card)
+            else:
+                p.offense.append(received_card)
+
+            if offer_kind[0] == "offense":
+                q.offense.append(offered_card)
+            else:
+                q.jokers.append(offered_card)
+
+            # refill offense hands
+            self.refill_offense(p)
+            self.refill_offense(q)
+
+            print("Trade completed.\n")
+
 
     # ---- Combat ----
 
