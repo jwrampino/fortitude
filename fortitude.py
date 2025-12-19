@@ -440,11 +440,33 @@ class FortitudeGame:
             print(f"\n{q.name}, trade proposal from {p.name}:")
             print(f"  Offer: {offered_card.short()}")
             print(f"  Request: {'🃏' if req == 'JOKER' else req}")
-            consent = input("Accept? (y/n): ").strip().lower()
+            while True:
+                print("\nConfirm trade:")
+                print("  Y) Accept trade")
+                print("  N) Decline trade")
+                print("  R) Review your hand")
 
-            if consent != "y":
-                print("Trade declined.\n")
-                continue
+                resp = input("Choose (Y/N/R): ").strip().lower()
+
+                if resp == "r":
+                    self.show_private_hand(q)
+                    continue
+
+                if resp == "y":
+                    consent = True
+                    break
+
+                if resp == "n":
+                    consent = False
+                    break
+
+                print("Invalid choice.")
+
+                if not consent:
+                    print("Trade declined.\n")
+                    continue
+
+
 
             # --- TARGET privately selects matching card ---
             self.show_private_hand(q)
