@@ -207,6 +207,10 @@ class FortitudeGame:
         if p.alive and p.king_present and self.defense_all_destroyed(p):
             p.king_exposed = True
 
+    def can_add_defense(self, p: Player) -> bool:
+        """Returns True if player is allowed to add another defense card."""
+        return len(p.defense) < 4
+
     # ---- Conversions ----
 
     def convert_menu(self, p: Player) -> None:
@@ -545,14 +549,19 @@ class FortitudeGame:
             return ("cancel", None)
         return ("cancel", None)
     
-    def add_defense_card(self, p: Player) -> None:
-        """Adds a new face-down numeric defense card to the player."""
+    def add_defense_card(self, p: Player) -> bool:
+        """
+        Adds a new face-down numeric defense card to the player.
+        Returns True if successful, False if at max defense.
+        """
+        if not self.can_add_defense(p):
+            return False
+
         while True:
             c = self.draw_card()
             if c.is_numeric():
                 p.defense.append(DefenseSlot(card=c, face_up=False, destroyed=False))
-                return
-
+                return True
 
     def play_turn(self, p_idx: int) -> Optional[int]:
         """
@@ -635,6 +644,12 @@ class FortitudeGame:
 
                 # ---- QUEEN: add a defense card ----
                 if src == "offense" and card.rank == "Q":
+
+                    # Check for defense of 4
+                    if not self.can_add_defense(p):
+                        print("Illegal move: you already have the maximum of 4 defense cards.\n")
+                        continue
+                
                     # consume the Queen
                     p.offense.pop(idx)
 
