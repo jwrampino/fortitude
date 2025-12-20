@@ -172,7 +172,9 @@ class FortitudeGame:
         return matches[0] if matches else None
 
     def show_public_board(self) -> None:
-        print("\n=== BOARD ===")
+        print("\n╔" + "═" * 58 + "╗")
+        print("║{:^58}║".format("BOARD STATE"))
+        print("╠" + "═" * 58 + "╣")
         for i, p in enumerate(self.players):
             status = "ALIVE" if p.alive else "OUT"
             k = "K" if p.king_present else "🕱"
@@ -187,8 +189,8 @@ class FortitudeGame:
                     slots.append("[XX]")
                 else:
                     slots.append(f"[{ds.card.short()}]" if ds.face_up else "[??]")
-            print(f"{p.name} | {status} | King: {k} [{exposed}] | Def:{' '.join(slots)}{pending}")
-        print("=============\n")
+            print(f"║ {p.name} | {status} | King: {k} [{exposed}] | Def:{' '.join(slots)}{pending} ║")
+        print("╚" + "═" * 58 + "╝\n")
 
     def show_private_hand(self, p: Player) -> None:
         print(f"--- {p.name}'s hand ---")
@@ -660,9 +662,21 @@ class FortitudeGame:
         p = self.players[p_idx]
         if not p.alive:
             return None
+        
+        print("\n" + "=" * 60)
+        print(f"▶▶▶  {p.name.upper()}'S TURN")
+        print("=" * 60 + "\n")
 
         # If you have all jokers in universe, you instantly win.
         if self.check_auto_joker_win(p):
+            print(f"{p.name} has all the Jokers!")
+            print("🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣")
+            print("🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣")
+            print("🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣")
+            print("🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣")
+            print("🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣")
+            print("🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣")
+            print("🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣🤣")
             return p_idx
 
         # If you have a pending ace on your exposed king, resolve now (must respond by your turn or be out).
@@ -689,7 +703,7 @@ class FortitudeGame:
             print("F) Forfeit")
             choice = input("Choose: ").strip()
 
-            if choice == "F":
+            if (choice == "F") or (choice == "f"):
                 p.alive = False
                 p.king_present = False
                 p.king_exposed = False
