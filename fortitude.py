@@ -162,11 +162,11 @@ class FortitudeGame:
         print("\n=== BOARD ===")
         for i, p in enumerate(self.players):
             status = "ALIVE" if p.alive else "OUT"
-            k = "K" if p.king_present else "-"
+            k = " K" if p.king_present else " 🕱"
             exposed = "EXPOSED" if p.king_exposed else "HIDDEN"
             pending = ""
             if p.pending_ace and p.pending_ace.active and p.alive:
-                pending = f" | 🅰️ pending (attacker: {self.players[p.pending_ace.attacker_idx].name})"
+                pending = f" | ⚠️ Ace pending (attacker: {self.players[p.pending_ace.attacker_idx].name})"
 
             slots = []
             for ds in p.defense:
@@ -180,9 +180,12 @@ class FortitudeGame:
     def show_private_hand(self, p: Player) -> None:
         print(f"--- {p.name}'s hand ---")
         print("Offense (4):")
-        for idx, c in enumerate(p.offense):
-            print(f"  {idx}: {c.short()}")
-        print(f"Jokers (side pool): {len(p.jokers)} " + (" ".join(j.short() for j in p.jokers) if p.jokers else ""))
+        for i, c in enumerate(p.offense, start=1):
+            print(f"  {i}) {c.short()}")
+        if p.jokers:
+            print(f"Jokers (side pool): {len(p.jokers)} " + " ".join(j.short() for j in p.jokers))
+        else:
+            print("Jokers (side pool): 0")
         print("----------------------\n")
 
     # ---- Rule logic ----
@@ -402,7 +405,6 @@ class FortitudeGame:
             offered_card = None
 
             while True:
-                self.show_private_hand(p)
                 print("Select a card to OFFER:")
 
                 for i, c in enumerate(p.offense, start=1):
@@ -622,7 +624,7 @@ class FortitudeGame:
 
         # If you have a pending ace on your exposed king, resolve now (must respond by your turn or be out).
         if p.pending_ace and p.pending_ace.active:
-            print(f"{p.name}: Your exposed King is under a pending Ace attack from {self.players[p.pending_ace.attacker_idx].name}!")
+            print(f"{p.name}: ⚠️ Your exposed King is under a pending Ace attack from {self.players[p.pending_ace.attacker_idx].name}!")
             resolved = self.resolve_pending_ace(p_idx)
             if not resolved:
                 print(f"{p.name} failed to defend. They are OUT.\n")
@@ -638,13 +640,13 @@ class FortitudeGame:
             self.show_public_board()
             self.show_private_hand(p)
             print(f"== {p.name}'s turn ==")
-            print("1) Trade")
+            print("1) Trade cards")
             print("2) Convert cards")
-            print("3) Play ONE offensive card (end your turn after)")
-            print("0) Forfeit (debug / concede)")
+            print("3) Play ONE offensive card (end turn after)")
+            print("F) Forfeit")
             choice = input("Choose: ").strip()
 
-            if choice == "0":
+            if choice == "F":
                 p.alive = False
                 p.king_present = False
                 p.king_exposed = False
@@ -863,12 +865,12 @@ class FortitudeGame:
 
         self.show_private_hand(defender)
         print("Defend against pending Ace:")
-        print("  1) Block with a King (discard a King from offense)")
-        print("  2) Replace King with an Ace (discard an Ace; King stays)")
-        print("  0) Cannot defend")
+        print("  K) Block with a King (discard a King from offense)")
+        print("  A) Replace King with an Ace (discard an Ace; King stays)")
+        print("  C) Cannot defend")
 
         choice = input("Choose: ").strip()
-        if choice == "1":
+        if choice == "K":
             k_idxs = [i for i, c in enumerate(defender.offense) if c.rank == "K"]
             if not k_idxs:
                 print("No King to block.\n")
@@ -884,7 +886,7 @@ class FortitudeGame:
             print("Invalid.\n")
             return False
 
-        if choice == "2":
+        if choice == "A":
             a_idxs = [i for i, c in enumerate(defender.offense) if c.rank == "A"]
             if not a_idxs:
                 print("No Ace to replace.\n")
@@ -1130,7 +1132,7 @@ def main():
     while True:
         print("1) Start game")
         print("2) View instructions")
-        print("0) Quit")
+        print("Q) Quit")
         choice = input("Choose: ").strip()
 
         if choice == "2":
@@ -1138,7 +1140,7 @@ def main():
             input("\nPress Enter to return to menu...")
         elif choice == "1":
             break
-        elif choice == "0":
+        elif choice == "Q":
             return
         else:
             print("Invalid choice.\n")
@@ -1155,7 +1157,7 @@ def main():
         nm = input(f"Player {i} name: ").strip()
         names.append(nm if nm else f"P{i}")
 
-    seed_in = input("Optional RNG seed (blank for random): ").strip()
+    seed_in = input("Optional RNG seed (hit enter for random): ").strip()
     seed = int(seed_in) if seed_in.isdigit() else None
 
     game = FortitudeGame(names, seed=seed)
