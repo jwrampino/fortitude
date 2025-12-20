@@ -12,7 +12,8 @@ SUITS = ["♠", "♥", "♦", "♣"]
 NUMERIC_RANKS = set(["2", "3", "4", "5", "6", "7", "8", "9", "10"])
 
 def rank_value(rank: str) -> int:
-    """Value for comparisons in attack/defense. Face cards are high, but note: rules restrict what can be played in certain contexts."""
+    """Value for comparisons in attack/defense. Face cards are high, but note: 
+    rules restrict what can be played in certain contexts."""
     if rank in NUMERIC_RANKS:
         return int(rank)
     if rank == "J":
@@ -842,25 +843,25 @@ class FortitudeGame:
         print("Tie response options:")
         print("  - Play a numeric offense card with value strictly greater than attacker")
         print("  - OR play a Jack (auto-defend)")
-        print("  - You may NOT play Q/K/A/Joker as the higher-card response (Jack is the only allowed face here)")
+        print("  - You may NOT play Q/K/A/Joker")
 
         while True:
-            src = input("Respond with (O)ffense index or (P)ass: ").strip().upper()
-            if src == "P":
+            choice = input("Choose card (1–4) or P to pass: ").strip().upper()
+
+            if choice == "P":
                 return False
-            if src != "O":
+
+            if not choice.isdigit():
                 print("Invalid.")
                 continue
-            idx = input("Choose offense card (1–4): ").strip()
-            if not idx.isdigit():
-                print("Invalid.")
-                continue
-            idx = int(idx) - 1
+
+            idx = int(choice) - 1
             if not (0 <= idx < len(defender.offense)):
                 print("Invalid.")
                 continue
 
             c = defender.offense[idx]
+
             if c.is_joker or c.rank in {"Q", "K", "A"}:
                 print("Illegal response card for tie defense.")
                 continue
@@ -879,7 +880,8 @@ class FortitudeGame:
                 print("Higher numeric card played: tie defended (response discarded).")
                 return True
 
-            print("That does not satisfy tie-defense requirements.")
+            print("That does not satisfy tie-defense requirements. Defense failed.")
+
 
     def resolve_pending_ace(self, defender_idx: int) -> bool:
         """
