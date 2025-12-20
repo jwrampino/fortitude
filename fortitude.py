@@ -240,12 +240,12 @@ class FortitudeGame:
 
             if choice == "1":
                 # pick two offense indices with same numeric rank
-                i = input("Index of first numeric card: ").strip()
-                j = input("Index of second numeric card: ").strip()
+                i = input("Choose first card (1–4): ").strip()
+                j = input("Choose second card (1–4): ").strip()
                 if not (i.isdigit() and j.isdigit()):
                     print("Invalid indices.\n")
                     continue
-                i, j = int(i), int(j)
+                i, j = int(i) - 1, int(j) - 1
                 if i == j or not (0 <= i < len(p.offense) and 0 <= j < len(p.offense)):
                     print("Invalid selection.\n")
                     continue
@@ -267,22 +267,28 @@ class FortitudeGame:
                 if len(jack_idxs) < 2:
                     print("Need two Jacks in offense.\n")
                     continue
-                print(f"Jack indices available: {jack_idxs}")
-                a = input("Pick first Jack index: ").strip()
-                b = input("Pick second Jack index: ").strip()
+
+                print(f"Jack positions available: {[i+1 for i in jack_idxs]}")
+                a = input("Pick first Jack (1–4): ").strip()
+                b = input("Pick second Jack (1–4): ").strip()
+
                 if not (a.isdigit() and b.isdigit()):
                     print("Invalid.\n")
                     continue
-                a, b = int(a), int(b)
+
+                a, b = int(a) - 1, int(b) - 1
                 if a == b or a not in jack_idxs or b not in jack_idxs:
                     print("Invalid.\n")
                     continue
+
                 for idx in sorted([a, b], reverse=True):
                     p.offense.pop(idx)
+
                 p.offense.append(Card(rank="Q", suit="♠"))
                 self.refill_offense(p)
                 print("Converted to Queen.\n")
                 continue
+
 
             if choice == "3":
                 # two Queens -> King
@@ -290,22 +296,28 @@ class FortitudeGame:
                 if len(q_idxs) < 2:
                     print("Need two Queens in offense.\n")
                     continue
-                print(f"Queen indices available: {q_idxs}")
-                a = input("Pick first Queen index: ").strip()
-                b = input("Pick second Queen index: ").strip()
+
+                print(f"Queen positions available: {[i+1 for i in q_idxs]}")
+                a = input("Pick first Queen (1–4): ").strip()
+                b = input("Pick second Queen (1–4): ").strip()
+
                 if not (a.isdigit() and b.isdigit()):
                     print("Invalid.\n")
                     continue
-                a, b = int(a), int(b)
+
+                a, b = int(a) - 1, int(b) - 1
                 if a == b or a not in q_idxs or b not in q_idxs:
                     print("Invalid.\n")
                     continue
+
                 for idx in sorted([a, b], reverse=True):
                     p.offense.pop(idx)
+
                 p.offense.append(Card(rank="K", suit="♠"))
                 self.refill_offense(p)
                 print("Converted to King.\n")
                 continue
+
 
             if choice == "4":
                 # two Kings -> Ace
@@ -313,40 +325,51 @@ class FortitudeGame:
                 if len(k_idxs) < 2:
                     print("Need two Kings in offense.\n")
                     continue
-                print(f"King indices available: {k_idxs}")
-                a = input("Pick first King index: ").strip()
-                b = input("Pick second King index: ").strip()
+
+                print(f"King positions available: {[i+1 for i in k_idxs]}")
+                a = input("Pick first King (1–4): ").strip()
+                b = input("Pick second King (1–4): ").strip()
+
                 if not (a.isdigit() and b.isdigit()):
                     print("Invalid.\n")
                     continue
-                a, b = int(a), int(b)
+
+                a, b = int(a) - 1, int(b) - 1
                 if a == b or a not in k_idxs or b not in k_idxs:
                     print("Invalid.\n")
                     continue
+
                 for idx in sorted([a, b], reverse=True):
                     p.offense.pop(idx)
+
                 p.offense.append(Card(rank="A", suit="♠"))
                 self.refill_offense(p)
                 print("Converted to Ace.\n")
                 continue
 
+
             if choice == "5":
                 if not p.jokers:
                     print("No jokers to use.\n")
                     continue
+
                 face_idxs = [idx for idx, c in enumerate(p.offense) if c.is_face()]
                 if not face_idxs:
                     print("Need a face card (J/Q/K) in offense.\n")
                     continue
-                print(f"Face indices available: {face_idxs}")
-                f = input("Pick face index to combine with a joker: ").strip()
+
+                print(f"Face positions available: {[i+1 for i in face_idxs]}")
+                f = input("Pick face card to combine with Joker (1–4): ").strip()
+
                 if not f.isdigit():
                     print("Invalid.\n")
                     continue
-                f = int(f)
+
+                f = int(f) - 1
                 if f not in face_idxs:
                     print("Invalid.\n")
                     continue
+
                 # consume one joker + that face card
                 p.jokers.pop()
                 p.offense.pop(f)
@@ -354,6 +377,7 @@ class FortitudeGame:
                 self.refill_offense(p)
                 print("Converted Joker + Face -> Ace.\n")
                 continue
+
 
             print("Unknown choice.\n")
 
@@ -445,7 +469,7 @@ class FortitudeGame:
             # --- REQUEST: specify what you want ---
             print("\nWhat do you REQUEST?")
             print("  Rank: 2–10, J, Q, K, A")
-            print("  Or: Joker")
+            print("  Or: JOKER")
             print("  B) Back")
             req = input("Request: ").strip().upper()
 
@@ -456,12 +480,12 @@ class FortitudeGame:
             if req == "1":
                 req = "A"
 
-            if req != "Joker" and req not in valid_ranks:
+            if req != "JOKER" and req not in valid_ranks:
                 print("Invalid request.\n")
                 continue
 
             # --- CONSENT ---
-            print(f"\n{q.name}, trade proposal from {p.name}:")
+            print(f"\n{q.name}, there is a trade proposal from {p.name}:")
             print(f"  Offer: {offered_card.short()}")
             print(f"  Request: {'🃏 Joker' if req == 'JOKER' else req}")
 
@@ -492,7 +516,7 @@ class FortitudeGame:
             received_card = None
             received_kind = None
 
-            if req == "Joker":
+            if req == "JOKER":
                 if not q.jokers:
                     print("Trade fails: they have no joker.\n")
                     continue
@@ -507,7 +531,7 @@ class FortitudeGame:
 
                 while True:
                     self.show_private_hand(q)
-                    print(f"Select a card to GIVE ({req}):")
+                    print(f"Select a card to complete the trade ({req}):")
                     for i in matches:
                         print(f"  {i+1}) {q.offense[i].short()}")
                     print("  B) Back (cancel trade)")
@@ -722,12 +746,18 @@ class FortitudeGame:
                         self.update_king_exposure(defender)
                         print("No defense left; king is exposed.\n")
                         continue
-                    print(f"Target defense slot indices: {live_slots}")
-                    s = input("Choose defense slot index: ").strip()
-                    if not s.isdigit() or int(s) not in live_slots:
+
+                    print(f"Target defense slots available: {[i+1 for i in live_slots]}")
+                    s = input("Choose defense slot (1–4): ").strip()
+
+                    if not s.isdigit():
                         print("Invalid defense slot.\n")
                         continue
-                    s = int(s)
+
+                    s = int(s) - 1
+                    if s not in live_slots:
+                        print("Invalid defense slot.\n")
+                        continue
 
                     # play the attack
                     played = self._consume_card(p, src, idx)
@@ -821,11 +851,11 @@ class FortitudeGame:
             if src != "O":
                 print("Invalid.")
                 continue
-            idx = input("Offense index 0..3: ").strip()
+            idx = input("Choose offense card (1–4): ").strip()
             if not idx.isdigit():
                 print("Invalid.")
                 continue
-            idx = int(idx)
+            idx = int(idx) - 1
             if not (0 <= idx < len(defender.offense)):
                 print("Invalid.")
                 continue
