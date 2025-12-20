@@ -1,6 +1,7 @@
 import random
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Tuple
+from wcwidth import wcswidth
 
 # -----------------------------
 # Card model + utilities
@@ -172,16 +173,16 @@ class FortitudeGame:
         return matches[0] if matches else None
 
     def show_public_board(self) -> None:
-        print("\n╔" + "═" * 58 + "╗")
-        print("║{:^58}║".format("BOARD STATE"))
-        print("╠" + "═" * 58 + "╣")
+        print("\n╔" + "═" * 64 + "╗")
+        print("║{:^64}║".format("BOARD STATE"))
+        print("╠" + "═" * 64 + "╣")
         for i, p in enumerate(self.players):
             status = "ALIVE" if p.alive else "OUT"
             k = "K" if p.king_present else "🕱"
             exposed = "EXPOSED" if p.king_exposed else "HIDDEN"
             pending = ""
             if p.pending_ace and p.pending_ace.active and p.alive:
-                pending = f" | ⚠️ Ace pending (attacker: {self.players[p.pending_ace.attacker_idx].name})"
+                pending = f" | ⚠️ Ace attack pending"
 
             slots = []
             for ds in p.defense:
@@ -189,8 +190,8 @@ class FortitudeGame:
                     slots.append("[XX]")
                 else:
                     slots.append(f"[{ds.card.short()}]" if ds.face_up else "[??]")
-            print(f"║ {p.name} | {status} | King: {k} [{exposed}] | Def:{' '.join(slots)}{pending} ║")
-        print("╚" + "═" * 58 + "╝\n")
+            print(f"║ {p.name} | {status} | King: {k} [{exposed}] | Def:{' '.join(slots)}{pending}")
+        print("╚" + "═" * 64 + "╝\n")
 
     def show_private_hand(self, p: Player) -> None:
         print(f"--- {p.name}'s hand ---")
@@ -398,6 +399,15 @@ class FortitudeGame:
 
     # ---- Trading (simple + enforce 4-card offense hands) ----
 
+    def trade_transition_back(self, from_player: str, to_player: str) -> None:
+        print("\n" + "═" * 44)
+        print("        TRADE FINALIZED")
+        print("═" * 44 + "\n")
+        print(f"{from_player} ➜  {to_player}\n")
+        print(f"Please pass control to {to_player}.")
+        print("═" * 44 + "\n")
+
+
     def trade_menu(self, p_idx: int) -> None:
         """
         Propose a specific-for-specific trade with consent and hidden hands.
@@ -506,6 +516,14 @@ class FortitudeGame:
                 continue
 
             # --- CONSENT ---
+            print("\n" + "═" * 44)
+            print("        TRADE UNDER CONSIDERATION")
+            print("═" * 44 + "\n")
+            print(f"{p.name} ➜  {q.name}\n")
+            print(f"Please pass control to {q.name}.")
+            print("Other players should look away.\n")
+            print("═" * 44)
+
             print(f"\n{q.name}, there is a trade proposal from {p.name}:")
             print(f"  Offer: {offered_card.short()}")
             print(f"  Request: {'🃏 Joker' if req == 'JOKER' else req}")
@@ -531,6 +549,7 @@ class FortitudeGame:
 
             if not consent:
                 print("Trade declined.\n")
+                print(f"Please return control to {p.name}.")
                 continue
 
             # --- TARGET privately selects matching card to give ---
@@ -540,6 +559,7 @@ class FortitudeGame:
             if req == "JOKER":
                 if not q.jokers:
                     print("Trade fails: they have no joker.\n")
+                    print(f"Please return control to {p.name}.")
                     continue
                 received_card = q.jokers[0]
                 received_kind = ("joker", 0)
@@ -548,6 +568,7 @@ class FortitudeGame:
                 matches = [i for i, c in enumerate(q.offense) if c.rank == req]
                 if not matches:
                     print("Trade fails: they have no matching card.\n")
+                    print(f"Please return control to {p.name}.")
                     continue
 
                 while True:
@@ -560,6 +581,7 @@ class FortitudeGame:
                     sel = input("Choose: ").strip().upper()
                     if sel == "B":
                         print("Trade canceled.\n")
+                        print(f"Please return control to {p.name}.")
                         received_card = None
                         break
                     if sel.isdigit():
@@ -603,6 +625,7 @@ class FortitudeGame:
             self.refill_offense(q)
 
             print("Trade completed.\n")
+            self.trade_transition_back(q.name, p.name)
 
     # ---- Combat ----
 
