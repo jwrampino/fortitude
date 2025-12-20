@@ -158,12 +158,24 @@ class FortitudeGame:
             j = (j + 1) % self.n
             if self.players[j].alive:
                 return j
+            
+    def get_player_by_name(self, name: str) -> Optional[int]:
+        """
+        Resolve a living player by name (case-insensitive).
+        Returns player index or None if not found or not alive.
+        """
+        name = name.strip().lower()
+        matches = [
+            i for i, p in enumerate(self.players)
+            if p.alive and p.name.lower() == name
+        ]
+        return matches[0] if matches else None
 
     def show_public_board(self) -> None:
         print("\n=== BOARD ===")
         for i, p in enumerate(self.players):
             status = "ALIVE" if p.alive else "OUT"
-            k = " K" if p.king_present else " 🕱"
+            k = "K" if p.king_present else "🕱"
             exposed = "EXPOSED" if p.king_exposed else "HIDDEN"
             pending = ""
             if p.pending_ace and p.pending_ace.active and p.alive:
@@ -172,10 +184,10 @@ class FortitudeGame:
             slots = []
             for ds in p.defense:
                 if ds.destroyed:
-                    slots.append("[X]")
+                    slots.append("[XX]")
                 else:
                     slots.append(f"[{ds.card.short()}]" if ds.face_up else "[??]")
-            print(f"{i}: {p.name} | {status} | King:{k} {exposed} | Def:{' '.join(slots)}{pending}")
+            print(f"{p.name} | {status} | King: {k} [{exposed}] | Def:{' '.join(slots)}{pending}")
         print("=============\n")
 
     def show_private_hand(self, p: Player) -> None:
@@ -412,15 +424,21 @@ class FortitudeGame:
                 print("Invalid.\n")
                 continue
 
-            # --- pick partner ---
+           # --- pick partner ---
             self.show_public_board()
-            t_raw = input("Propose trade to which player index? ").strip()
-            if not t_raw.isdigit():
-                print("Invalid.\n")
-                continue
-            t = int(t_raw)
-            if not (0 <= t < self.n) or t == p_idx or not self.players[t].alive:
+
+            name = input("Propose trade to which player (name)? ").strip()
+
+            # build lookup of alive players by name (case-insensitive)
+            name_map = {pl.name.lower(): i for i, pl in enumerate(self.players) if pl.alive}
+
+            if name.lower() not in name_map:
                 print("Invalid target.\n")
+                continue
+
+            t = name_map[name.lower()]
+            if t == p_idx:
+                print("You cannot trade with yourself.\n")
                 continue
 
             q = self.players[t]
@@ -696,15 +714,18 @@ class FortitudeGame:
                     print("Canceled.\n")
                     continue
 
-                # target selection
+                # target selection by name
                 self.show_public_board()
-                t = input("Attack which player index? ").strip()
-                if not t.isdigit():
-                    print("Invalid.\n")
-                    continue
-                t = int(t)
-                if not (0 <= t < self.n) or (not self.players[t].alive) or t == p_idx:
-                    print("Invalid target.\n")
+                name = input("Attack which player? (type name): ").strip()
+                # build lookup of alive opponents
+                name_map = {
+                    p.name.lower(): i
+                    for i, p in enumerate(self.players)
+                    if p.alive and i != p_idx
+                }
+                t = name_map.get(name.lower())
+                if t is None:
+                    print("Invalid target. Choose a living opponent by name.\n")
                     continue
 
                 # decide target slot: if king exposed, allow attacking king with Ace; else attack defense slot
