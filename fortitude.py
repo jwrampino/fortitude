@@ -227,8 +227,9 @@ class FortitudeGame:
             p.king_exposed = True
 
     def can_add_defense(self, p: Player) -> bool:
-        """Returns True if player is allowed to add another defense card."""
-        return len(p.defense) < 4
+        """Returns True if player has fewer than 4 non-destroyed defenses."""
+        live = sum(not ds.destroyed for ds in p.defense)
+        return live < 4
 
     # ---- Conversions ----
 
@@ -666,8 +667,8 @@ class FortitudeGame:
 
     def add_defense_card(self, p: Player) -> bool:
         """
-        Adds a new face-down numeric defense card to the player.
-        Returns True if successful, False if at max defense.
+        Adds a new face-down numeric defense card
+        into the first destroyed slot.
         """
         if not self.can_add_defense(p):
             return False
@@ -675,8 +676,11 @@ class FortitudeGame:
         while True:
             c = self.draw_card()
             if c.is_numeric():
-                p.defense.append(DefenseSlot(card=c, face_up=False, destroyed=False))
-                return True
+                for i, ds in enumerate(p.defense):
+                    if ds.destroyed:
+                        p.defense[i] = DefenseSlot(card=c, face_up=False, destroyed=False)
+                        return True
+
 
     def play_turn(self, p_idx: int) -> Optional[int]:
         """
@@ -752,6 +756,29 @@ class FortitudeGame:
                     print("Canceled.\n")
                     continue
 
+                card = p.offense[idx]
+
+                # ---- QUEEN: self-defense regeneration (NO TARGET SELECTION) ----
+                if card.rank == "Q":
+                    if not self.can_add_defense(p):
+                        print("Illegal move: you already have the maximum of 4 defense cards.\n")
+                        continue
+
+                    # consume the Queen
+                    p.offense.pop(idx)
+
+                    print(f"{p.name} plays a Queen to reinforce their defenses.")
+
+                    # add new defense
+                    self.add_defense_card(p)
+
+                    # refill offense
+                    self.refill_offense(p)
+
+                    # Queen counts as the ONE offensive action → end turn
+                    return self.check_game_end()
+
+
                 # target selection by name
                 self.show_public_board()
                 name = input("Attack which player? (type name): ").strip()
@@ -771,28 +798,6 @@ class FortitudeGame:
                 self.update_king_exposure(defender)
 
                 card = p.offense[idx] if src == "offense" else p.jokers[idx]
-
-                # ---- QUEEN: add a defense card ----
-                if src == "offense" and card.rank == "Q":
-
-                    # Check for defense of 4
-                    if not self.can_add_defense(p):
-                        print("Illegal move: you already have the maximum of 4 defense cards.\n")
-                        continue
-                
-                    # consume the Queen
-                    p.offense.pop(idx)
-
-                    print(f"{p.name} plays a Queen to reinforce their defenses.")
-
-                    # add a new defense card
-                    self.add_defense_card(p)
-
-                    # refill offense hand
-                    self.refill_offense(p)
-
-                    # playing a Queen ends the turn (it is the offensive action)
-                    return self.check_game_end()
 
                 # Apply restrictions: "An opponent may attack using any offense card ... that is not a joker, face card, or ace."
                 # So NORMAL attacks on defense must use numeric cards only.
