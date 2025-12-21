@@ -251,11 +251,12 @@ class FortitudeGame:
             print("  B) Back")
             choice = input("Choose: ").strip()
 
-            if choice == "B":
+            if (choice == "B") or (choice == "b"):
                 return
 
             if choice == "1":
                 # pick two offense indices with same numeric rank
+                self.show_private_hand(p)
                 i = input("Choose first card (1–4): ").strip()
                 j = input("Choose second card (1–4): ").strip()
                 if not (i.isdigit() and j.isdigit()):
@@ -549,7 +550,7 @@ class FortitudeGame:
 
             if not consent:
                 print("Trade declined.\n")
-                print(f"Please return control to {p.name}.")
+                self.trade_transition_back(q.name, p.name)
                 continue
 
             # --- TARGET privately selects matching card to give ---
@@ -559,7 +560,7 @@ class FortitudeGame:
             if req == "JOKER":
                 if not q.jokers:
                     print("Trade fails: they have no joker.\n")
-                    print(f"Please return control to {p.name}.")
+                    self.trade_transition_back(q.name, p.name)
                     continue
                 received_card = q.jokers[0]
                 received_kind = ("joker", 0)
@@ -568,7 +569,7 @@ class FortitudeGame:
                 matches = [i for i, c in enumerate(q.offense) if c.rank == req]
                 if not matches:
                     print("Trade fails: they have no matching card.\n")
-                    print(f"Please return control to {p.name}.")
+                    self.trade_transition_back(q.name, p.name)
                     continue
 
                 while True:
@@ -581,7 +582,7 @@ class FortitudeGame:
                     sel = input("Choose: ").strip().upper()
                     if sel == "B":
                         print("Trade canceled.\n")
-                        print(f"Please return control to {p.name}.")
+                        self.trade_transition_back(q.name, p.name)
                         received_card = None
                         break
                     if sel.isdigit():
