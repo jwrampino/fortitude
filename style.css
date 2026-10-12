@@ -195,15 +195,11 @@ button.card:hover:enabled{transform:translateY(-6px)}
 .herocrown svg{width:100%;height:auto;display:block}
 .hero h1{background:linear-gradient(180deg,#fff6d2,#eec45f 55%,#c18f2e);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:var(--gold)}
 
-#sharebar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:40;display:flex;gap:8px;padding:8px 10px;border-radius:999px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.35)}
-.shell{padding-bottom:84px}
-@media (max-width:480px){#sharebar{gap:6px;padding:6px 8px;max-width:calc(100vw - 24px)}#sharebar .btn{padding-left:10px;padding-right:10px}}
-
+@media (max-width:480px){
 button.brand{background:none;border:0;color:inherit;cursor:pointer;padding:4px 6px;margin-left:-6px;border-radius:10px}
 button.brand:hover{background:rgba(255,255,255,.07)}
 .brand[hidden]{display:none}
 #topbtns{margin-left:auto}
-#sharebar a.btn{text-decoration:none;display:inline-flex;align-items:center}
 
 /* Marcellus ships one weight, so keep display text at 400 instead of faux bold */
 h1,h2,h3,.brand,.hero h1,.bname,.banner .msg,.seat .no,.stepc b,.ace-pend{font-weight:400}
@@ -214,3 +210,9 @@ h1,h2,h3,.brand,.hero h1,.bname,.banner .msg,.seat .no,.stepc b,.ace-pend{font-w
 .hero h1{background:linear-gradient(105deg,transparent 42%,rgba(255,255,255,.95) 50%,transparent 58%) 160% 0/250% 100% no-repeat,linear-gradient(180deg,#fff6d2,#eec45f 55%,#c18f2e);-webkit-background-clip:text;background-clip:text;animation:shine 5.5s ease-in-out 1s infinite}
 @keyframes shine{0%{background-position:160% 0,0 0}45%,100%{background-position:-60% 0,0 0}}
 @media (prefers-reduced-motion:reduce){.hero::before,.hero h1{animation:none}}
+
+.linkrow{display:flex;gap:8px;margin-top:18px}
+.brand{align-items:baseline}
+.brand svg{margin-bottom:-3px}
+
+.you.handonly{grid-template-columns:minmax(0,1fr)}

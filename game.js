@@ -80,7 +80,7 @@ function hintText(p,canAct){
   if(c.rank==="Q")return S.game.deadCount(p)>0?"Play the Queen to raise a new defense.":"You have no broken defenses to restore.";
   return "A "+F.RN[c.rank]+" can't attack. Keep it for defense, or convert it.";
 }
-function youHTML(){
+function youHTML(merged){
   var g=S.game,v=S.viewer,p=g.players[v];
   var canAct=!!S.ctx&&S.ctx.i===v&&!S.busy&&!S.modal;
   var tg=targeting();
@@ -106,6 +106,7 @@ function youHTML(){
       '<button class="btn" data-act="pass"'+(canAct&&!p.pending?"":" disabled")+">Discard &amp; pass</button>"+
       '<button class="btn danger" data-act="concede"'+(canAct?"":" disabled")+">Concede</button></div>";
   }
+  if(merged)return '<div class="you handonly"><div class="handbox">'+hand+"</div></div>";
   return '<div class="you">'+boardHTML(v,tg)+'<div class="handbox">'+hand+"</div></div>";
 }
 function speedName(){return S.speed===0.5?"Slow":S.speed===1?"Normal":"Immediate"}
@@ -117,7 +118,10 @@ function gameHTML(){
   var g=S.game,v=S.viewer,order=[],tg=targeting();
   if(v===null){g.players.forEach(function(_,i){order.push(i)})}
   else for(var k=1;k<g.n;k++)order.push((v+k)%g.n);
-  return '<div class="play"><div class="table">'+bannerHTML()+'<div class="opps">'+order.map(function(i){return boardHTML(i,tg)}).join("")+"</div>"+(v!==null?youHTML():"")+"</div>"+logHTML()+"</div>";
+  /* with an odd number of 3 or more opponents, your own board fills the last gap beside them and your hand sits below */
+  var merged=v!==null&&order.length>=3&&order.length%2===1;
+  if(merged)order.push(v);
+  return '<div class="play"><div class="table">'+bannerHTML()+'<div class="opps">'+order.map(function(i){return boardHTML(i,tg)}).join("")+"</div>"+(v!==null?youHTML(merged):"")+"</div>"+logHTML()+"</div>";
 }
 /* ---------- menu ---------- */
 function miniRow(list){return '<div class="minis">'+list.map(function(c){return cardHTML({rank:c[0],suit:c[1]},{})}).join("")+"</div>"}
@@ -131,7 +135,7 @@ function menuHTML(){
   return '<div class="menu"><section class="hero"><div class="herocrown" aria-hidden="true">'+CROWN+'</div><h1>Fortitude</h1><p class="tag">A card game of kings, bluffs and bargains.</p>'+
     '<div class="steps"><div class="stepc">'+miniRow([["8","♥"],["5","♣"]])+"<b>Strike</b>A higher number destroys a defense.</div>"+
     '<div class="stepc">'+miniRow([["K","♠"]])+"<b>Expose</b>Four broken defenses leave the King bare.</div>"+
-    '<div class="stepc">'+miniRow([["A","♦"]])+"<b>Execute</b>Only an Ace can end a King.</div></div></section>"+
+    '<div class="stepc">'+miniRow([["A","♦"]])+"<b>Execute</b>Only an Ace can end a King.</div></div><div class=\"linkrow\"><button class=\"btn small\" data-act=\"github\">GitHub</button><button class=\"btn small\" data-act=\"share\">Share link</button></div></section>"+
     '<section class="setup"><h2>Take your seats</h2><div class="row">'+
     '<button class="btn small" data-act="preset" data-p="duel">Duel a bot</button><button class="btn small" data-act="preset" data-p="solo3">You + 2 bots</button>'+
     '<button class="btn small" data-act="preset" data-p="pass3">Pass &amp; play (3)</button><button class="btn small" data-act="preset" data-p="watch">Watch 4 bots</button></div>'+
@@ -337,6 +341,7 @@ var ACT={
   closemodal:function(){if(S.modal&&!S.modal.res){S.modal=null;render()}},
   rules:function(){if(!S.modal||!S.modal.res){S.modal={type:"rules"};render()}},
   speed:function(){S.speed=S.speed===0.5?1:S.speed===1?0:0.5;render()},
+  github:function(){window.open("https://github.com/jwrampino/fortitude","_blank","noopener")},
   share:function(){
     var url=location.href.split("#")[0].split("?")[0];
     if(navigator.share){navigator.share({title:"Fortitude",text:"A card game of kings, bluffs and bargains.",url:url}).catch(function(){})}
