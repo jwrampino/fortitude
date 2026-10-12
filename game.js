@@ -7,7 +7,7 @@ function defSeats(){return [{name:"Challenger",bot:false,level:"normal"},{name:N
 function loadSeats(){try{var s=JSON.parse(localStorage.getItem("fortitude.seats")||"null");
   if(Array.isArray(s)&&s.length>=2&&s.length<=6)return s.map(function(x){return {name:(String(x.name||"").slice(0,16)==="You"?"Challenger":String(x.name||"").slice(0,16)),bot:!!x.bot,level:["easy","normal","hard"].indexOf(x.level)>=0?x.level:"normal"}})}catch(e){}return defSeats()}
 function saveSeats(){try{localStorage.setItem("fortitude.seats",JSON.stringify(S.seats))}catch(e){}}
-var S={screen:"menu",seats:loadSeats(),game:null,viewer:null,sel:null,modal:null,speed:1,ctx:null,busy:false,fx:{},raf:0,over:null};
+var S={screen:"menu",seats:loadSeats(),game:null,viewer:null,sel:null,modal:null,speed:0.5,ctx:null,busy:false,fx:{},raf:0,over:null};
 var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s).replace(/[&<>"']/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]})};
 var isRed=function(s){return s==="♥"||s==="♦"};
@@ -48,9 +48,9 @@ function slotHTML(d,i,s,tg,mine,p){
   return '<div class="slot">'+backHTML(o)+peek+"</div>";
 }
 function kingHTML(p,i,tg){
-  var g=S.game,exp=g.exposed(p),can=tg==="king"&&i!==S.viewer&&exp&&!p.pending&&p.alive;
+  var g=S.game,exp=g.exposed(p),can=tg==="king"&&i!==S.viewer&&exp&&p.alive;
   var tag=can?"button":"div",lab=!p.alive?"Fallen":exp?"Exposed":"King";
-  return "<"+tag+' class="king'+(exp?" exposed":"")+(p.alive?"":" fallen")+(can?" target":"")+'"'+(can?' data-act="aceking" data-t="'+i+'"':"")+">"+CROWN+'<span class="klabel">'+lab+"</span>"+(p.pending&&p.alive?'<span class="ace-pend" title="Ace attack pending">A!</span>':"")+"</"+tag+">";
+  return "<"+tag+' class="king'+(exp?" exposed":"")+(p.alive?"":" fallen")+(can?" target":"")+'"'+(can?' data-act="aceking" data-t="'+i+'"':"")+">"+CROWN+'<span class="klabel">'+lab+"</span>"+(p.pending&&p.alive?'<span class="ace-pend" title="Ace attack pending">'+(p.pending.n>1?"A×"+p.pending.n:"A!")+'</span>':"")+"</"+tag+">";
 }
 function boardHTML(i,tg,big){
   var g=S.game,p=g.players[i],mine=i===S.viewer;
@@ -67,7 +67,7 @@ function bannerHTML(){
   else if(S.ctx&&S.ctx.i===S.viewer)msg=cur.pending?"Your King is under attack":"Your move";
   else if(!cur.bot)msg=(S.viewer===null&&hcount()>1)?"Waiting for "+esc(cur.name):esc(cur.name)+" is deciding";
   else msg=esc(cur.name)+" is playing…";
-  return '<div class="banner"><span class="rd">Round '+g.round+" · "+g.totalJokers+" Jokers in the deck</span>"+'<span class="msg">'+msg+"</span></div>";
+  return '<div class="banner"><span class="rd">Round '+g.round+" · Jokers to win: "+g.totalJokers+"</span>"+'<span class="msg">'+msg+"</span></div>";
 }
 function hintText(p,canAct){
   if(!canAct)return "";
@@ -75,7 +75,7 @@ function hintText(p,canAct){
   if(p.pending)return "Trade or convert to find a King or an Ace, then answer the attack. You can't play a card until you do.";
   if(!c)return "Select a card to play. Trade or convert first if you like, then play one card to end your turn.";
   if(F.isNumR(c.rank))return "Click a defense card on any opponent board to strike it with "+F.cs(c)+".";
-  if(c.rank==="A")return S.game.players.some(function(q,i){return i!==S.viewer&&S.game.exposed(q)&&!q.pending})?"Click an exposed King to play your Ace.":"Aces can only hit an exposed King, and none are exposed yet.";
+  if(c.rank==="A")return S.game.players.some(function(q,i){return i!==S.viewer&&S.game.exposed(q)})?"Click an exposed King to play your Ace. It stacks on any Ace already pending.":"Aces can only hit an exposed King, and none are exposed yet.";
   if(c.rank==="J")return S.game.players.some(function(q,i){return i!==S.viewer&&q.alive&&!S.game.exposed(q)&&q.defense.some(function(d){return !d.dead&&d.up&&d.card.rank==="10"})})?"A Jack can destroy a face-up 10. Click one, or keep the Jack for tie defense.":"A Jack can only strike a face-up 10, and none are showing. Keep it for ties, or convert it.";
   if(c.rank==="Q")return S.game.deadCount(p)>0?"Play the Queen to raise a new defense.":"You have no broken defenses to restore.";
   return "A "+F.RN[c.rank]+" can't attack. Keep it for defense, or convert it.";
@@ -94,7 +94,7 @@ function youHTML(){
     var alert="";
     if(p.pending&&canAct){
       var hk=g.has(p,"K"),ha=g.has(p,"A");
-      alert='<div class="alert"><b>'+esc(g.players[p.pending.from].name)+' played an Ace on your exposed King.</b><div class="acts">'+
+      alert='<div class="alert"><b>'+(p.pending.n>1?p.pending.n+' Aces are bearing down on your exposed King. Answer each one.':esc(g.players[p.pending.from].name)+' played an Ace on your exposed King.')+'</b><div class="acts">'+
         '<button class="btn" data-act="defend" data-k="K"'+(hk?"":" disabled")+">Block with a King</button>"+
         '<button class="btn" data-act="defend" data-k="A"'+(ha?"":" disabled")+">Renew with an Ace</button></div></div>";
     }
@@ -108,7 +108,7 @@ function youHTML(){
   }
   return '<div class="you">'+boardHTML(v,tg)+'<div class="handbox">'+hand+"</div></div>";
 }
-function speedName(){return S.speed===0.5?"Slow":S.speed===1?"Normal":S.speed===3?"Fast":"Instant"}
+function speedName(){return S.speed===0.5?"Slow":S.speed===1?"Normal":"Immediate"}
 function logHTML(){
   var g=S.game,items=g.log.slice(-70).map(function(l){return '<li class="k-'+l.kind+'">'+fmt(l.msg)+"</li>"}).join("");
   return '<aside class="chron"><h3>Chronicle</h3><ol id="logol">'+items+"</ol></aside>";
@@ -128,19 +128,19 @@ function menuHTML(){
       '<select data-level="'+i+'" aria-label="Bot level"'+(s.bot?"":" hidden")+'>'+["easy","normal","hard"].map(function(l){return '<option value="'+l+'"'+(s.level===l?" selected":"")+">"+l[0].toUpperCase()+l.slice(1)+"</option>"}).join("")+"</select>"+
       '<button class="btn small del" data-act="delseat" data-i="'+i+'"'+(S.seats.length<=2?" disabled":"")+' aria-label="Remove seat">✕</button></div>';
   }).join("");
-  return '<div class="menu"><section class="hero"><h1>Fortitude</h1><p class="tag">A card game of kings, bluffs and bargains.</p>'+
+  return '<div class="menu"><section class="hero"><div class="herocrown" aria-hidden="true">'+CROWN+'</div><h1>Fortitude</h1><p class="tag">A card game of kings, bluffs and bargains.</p>'+
     '<div class="steps"><div class="stepc">'+miniRow([["8","♥"],["5","♣"]])+"<b>Strike</b>A higher number destroys a defense.</div>"+
     '<div class="stepc">'+miniRow([["K","♠"]])+"<b>Expose</b>Four broken defenses leave the King bare.</div>"+
     '<div class="stepc">'+miniRow([["A","♦"]])+"<b>Execute</b>Only an Ace can end a King.</div></div></section>"+
     '<section class="setup"><h2>Take your seats</h2><div class="row">'+
     '<button class="btn small" data-act="preset" data-p="duel">Duel a bot</button><button class="btn small" data-act="preset" data-p="solo3">You + 2 bots</button>'+
     '<button class="btn small" data-act="preset" data-p="pass3">Pass &amp; play (3)</button><button class="btn small" data-act="preset" data-p="watch">Watch 4 bots</button></div>'+
-    seats+'<div class="row"><button class="btn small" data-act="addseat"'+(S.seats.length>=6?" disabled":"")+'>Add seat</button><span class="meta">'+S.seats.length+" Jokers will be in the deck. Pass-and-play hides hands between turns.</span></div>"+
+    seats+'<div class="row"><button class="btn small" data-act="addseat"'+(S.seats.length>=6?" disabled":"")+'>Add seat</button><span class="meta">'+"Hold "+S.seats.length+" Jokers to win outright. Pass-and-play hides hands between turns.</span></div>"+
     '<div class="row"><button class="btn primary" data-act="start">Start game</button><button class="btn" data-act="rules">Rules</button></div></section></div>';
 }
 /* ---------- modals ---------- */
 function handCards(p,fn){return '<div class="hand">'+p.offense.map(function(c,i){var r=fn(c,i);return cardHTML(c,{act:r.act,i:i,dis:!r.act,cls:r.dim?"dim":""})}).join("")+"</div>"}
-var RULES="<div class=\"rules\"><h2>The rules of the realm</h2>\n<h3>The aim</h3><ul>\n<li>Be the last King standing, or gather every Joker in the deck (one for each seat) and win at once.</li></ul>\n<h3>Your realm</h3><ul>\n<li>Your King sits at the centre, guarded by four face-down defense cards, each a number from 2 to 10. You may peek at your own. Your foes may not.</li>\n<li>You also hold four offense cards. The deck never runs dry, so your hand is always refilled to four.</li>\n<li>Jokers you draw go to a side pool and do not count among your four.</li></ul>\n<h3>Your turn</h3><ul>\n<li>First, trade and convert as often as you wish.</li>\n<li>Then play one card to end your turn: strike a defense, play a Queen, or play an Ace on an exposed King.</li>\n<li>If nothing is worth playing, discard a card and pass. You may also concede at any time to leave the table.</li></ul>\n<h3>What each card does</h3><ul>\n<li><b>2 to 10.</b> The only cards that strike a defense. The higher number wins.</li>\n<li><b>Jack.</b> Answers a tie. Also destroys a face-up 10, and nothing else.</li>\n<li><b>Queen.</b> Raises a fresh face-down defense in one of your broken slots. You need at least one broken slot, and playing it ends your turn.</li>\n<li><b>King.</b> Discard one to block an Ace aimed at your exposed King.</li>\n<li><b>Ace.</b> The only card that can strike an exposed King. You may also discard one to renew your own King when an Ace is pending against it.</li>\n<li><b>Joker.</b> Kept in your side pool, not your hand. See Jokers below.</li></ul>\n<h3>Striking a defense</h3><ul>\n<li>Pick a number card and a defense on an opponent's board. Higher destroys it. Lower fails, and the defense is turned face up for all to see.</li>\n<li>A tie gives the defender one chance. Answer with a Jack or a higher number and the defense stands. Otherwise it falls.</li>\n<li>A 10 cannot be beaten by number. It falls to a tie the defender cannot answer with a Jack, or to a Jack once it is face up. A Jack cannot touch a face-down 10.</li></ul>\n<h3>The exposed King</h3><ul>\n<li>When all four of your defenses are broken, your King is exposed. Only an Ace can strike it.</li>\n<li>The Ace waits until the defender's next turn. They may trade and convert first, but must answer before playing a card: discard a King to block, or an Ace to renew. Fail, and the King falls.</li>\n<li>While no Ace is pending, a Queen can raise a defense and cover a bare King again.</li></ul>\n<h3>Conversions</h3><ul>\n<li>Forge stronger cards from weaker ones. Each conversion draws a replacement.</li>\n<li>Two of the same number → Jack · two Jacks → Queen · two Queens → King · two Kings → Ace · Joker + Jack, Queen or King → Ace.</li></ul>\n<h3>Trading</h3><ul>\n<li>Offer one card (or a Joker) and name the rank you want, or a Joker. The other player may accept and choose which matching card to give, or decline.</li>\n<li>Hands stay at four. If a trade would leave you with five, discard one.</li></ul>\n<h3>Jokers</h3><ul>\n<li>The deck holds one Joker for each seat. Drawn Jokers go to your side pool, hidden from others.</li>\n<li>Trade them, spend one with a face card to forge an Ace, or gather every Joker to win on the spot.</li></ul></div>";
+var RULES="<div class=\"rules\"><h2>The rules of the realm</h2>\n<h3>The aim</h3><ul>\n<li>Be the last King standing, or hold a Joker for each seat at the table and win at once.</li></ul>\n<h3>Your realm</h3><ul>\n<li>Your King sits at the centre, guarded by four face-down defense cards, each a number from 2 to 10. You may peek at your own. Your foes may not.</li>\n<li>You also hold four offense cards. The deck never runs dry, so your hand is always refilled to four.</li>\n<li>Jokers you draw go to a side pool and do not count among your four.</li></ul>\n<h3>Your turn</h3><ul>\n<li>First, trade and convert as often as you wish.</li>\n<li>Then play one card to end your turn: strike a defense, play a Queen, or play an Ace on an exposed King.</li>\n<li>If nothing is worth playing, discard a card and pass. You may also concede at any time to leave the table.</li></ul>\n<h3>What each card does</h3><ul>\n<li><b>2 to 10.</b> The only cards that strike a defense. The higher number wins.</li>\n<li><b>Jack.</b> Answers a tie. Also destroys a face-up 10, and nothing else.</li>\n<li><b>Queen.</b> Raises a fresh face-down defense in one of your broken slots. You need at least one broken slot, and playing it ends your turn.</li>\n<li><b>King.</b> Discard one to block an Ace aimed at your exposed King.</li>\n<li><b>Ace.</b> The only card that can strike an exposed King. You may also discard one to renew your own King when an Ace is pending against it.</li>\n<li><b>Joker.</b> Kept in your side pool, not your hand. See Jokers below.</li></ul>\n<h3>Striking a defense</h3><ul>\n<li>Pick a number card and a defense on an opponent's board. Higher destroys it. Lower fails, and the defense is turned face up for all to see.</li>\n<li>A tie gives the defender one chance. Answer with a Jack or a higher number and the defense stands. Otherwise it falls.</li>\n<li>A 10 cannot be beaten by number. It falls to a tie the defender cannot answer with a Jack, or to a Jack once it is face up. A Jack cannot touch a face-down 10.</li></ul>\n<h3>The exposed King</h3><ul>\n<li>When all four of your defenses are broken, your King is exposed. Only an Ace can strike it.</li>\n<li>The Ace waits until the defender's next turn. They may trade and convert first, but must answer before playing a card: discard a King to block, or an Ace to renew. Fail, and the King falls.</li>\n<li>Aces stack. While an Ace is pending, another player may play a further Ace on the same exposed King, and the defender must then answer every Ace with a King or an Ace of their own.</li>\n<li>While no Ace is pending, a Queen can raise a defense and cover a bare King again.</li></ul>\n<h3>Conversions</h3><ul>\n<li>Forge stronger cards from weaker ones. Each conversion draws a replacement.</li>\n<li>Two of the same number → Jack · two Jacks → Queen · two Queens → King · two Kings → Ace · Joker + Jack, Queen or King → Ace.</li>\n<li>Three Aces → any face card (Jack, Queen or King) · four Aces → a Joker for your side pool.</li></ul>\n<h3>Trading</h3><ul>\n<li>Offer one card (or a Joker) and name the rank you want, or a Joker. The other player may accept and choose which matching card to give, or decline.</li>\n<li>Hands stay at four. If a trade would leave you with five, discard one.</li></ul>\n<h3>Jokers</h3><ul>\n<li>Drawn Jokers go to your side pool, hidden from others.</li>\n<li>Trade them, spend one with a face card to forge an Ace, forge one from four Aces, or hold a Joker for each seat to win on the spot.</li></ul></div>";
 function modalHTML(){
   var m=S.modal;if(!m)return "";var g=S.game;
   var wrap=function(inner,solid,cls){return '<div class="scrim'+(solid?" solid":"")+'"><div class="dlg'+(cls?" "+cls:"")+'" role="dialog" aria-modal="true">'+inner+"</div></div>"};
@@ -182,13 +182,12 @@ function modalHTML(){
   if(m.type==="trim"){var T=g.players[m.pi];return wrap("<h2>"+esc(T.name)+", your hand is full</h2><p>Discard one card to get back to four.</p>"+handCards(T,function(){return {act:"trimpick"}}))}
   if(m.type==="over"){
     var w=g.winner!=null?g.players[g.winner]:null;
-    var why=g.reason==="jokers"?"collected every Joker":g.reason==="stalemate"?"The table reached a stalemate.":"is the last King standing";
     if(g.reason==="jokers"&&w){
     var nj=g.totalJokers,jk="",cf="",k2;
     for(k2=0;k2<nj;k2++){jk+='<span class="jw" style="--r:'+((k2-(nj-1)/2)*9)+'deg;animation-delay:'+(k2*0.12)+'s">'+cardHTML({rank:"JOKER",joker:true,suit:""},{})+"</span>"}
     var cols=["var(--gold)","var(--crim)","var(--ok)","var(--card)","#6fa8ff"];
     for(k2=0;k2<46;k2++){cf+='<i style="left:'+((k2*37)%100)+'%;background:'+cols[k2%5]+';animation-duration:'+(3+(k2%5)*0.6)+'s;animation-delay:-'+((k2*0.29)%4)+'s"></i>'}
-    return wrap('<div class="confetti" aria-hidden="true">'+cf+'</div><div class="jk">'+jk+"</div><h2>The Jesters have gathered!</h2><p>"+esc(w.name)+" collected every Joker in the deck and claims the crown after "+g.round+(g.round===1?" round":" rounds")+". The fools always get the last laugh.</p><div class=\"row\"><button class=\"btn primary\" data-act=\"rematch\">Rematch</button><button class=\"btn\" data-act=\"tomenu\">Back to menu</button></div>",false,"fest");
+    return wrap('<div class="confetti" aria-hidden="true">'+cf+'</div><div class="jk">'+jk+"</div><h2>The Jesters have gathered!</h2><p>"+esc(w.name)+" held a Joker for every seat and took the crown after "+g.round+(g.round===1?" round":" rounds")+". The fools always get the last laugh.</p><div class=\"row\"><button class=\"btn primary\" data-act=\"rematch\">Rematch</button><button class=\"btn\" data-act=\"tomenu\">Back to menu</button></div>",false,"fest");
   }
     if(w&&g.reason==="last"){
     var em="",k3,others=g.players.filter(function(q,i){return i!==g.winner}).map(function(q){return esc(q.name)}).join(", ");
@@ -196,16 +195,16 @@ function modalHTML(){
     var head=S.viewer===g.winner?"Victory is yours":"The crown goes to "+esc(w.name);
     return wrap('<div class="rays" aria-hidden="true"></div><div class="embers" aria-hidden="true">'+em+'</div><div class="crownwrap" aria-hidden="true">'+CROWN+"</div><h2>"+head+"</h2><p>Last King standing after "+g.round+(g.round===1?" round":" rounds")+". Fallen: "+others+".</p><div class=\"row\"><button class=\"btn primary\" data-act=\"rematch\">Rematch</button><button class=\"btn\" data-act=\"tomenu\">Back to menu</button></div>",false,"vict");
   }
-  return wrap("<h2>"+(w?esc(w.name)+" wins":"Stalemate")+"</h2><p>"+(w?esc(w.name)+" "+why+" after "+g.round+" rounds.":why)+"</p><div class=\"row\"><button class=\"btn primary\" data-act=\"rematch\">Rematch</button><button class=\"btn\" data-act=\"tomenu\">Back to menu</button></div>");
+  return wrap("<h2>Stalemate</h2><p>The table reached a stalemate after "+g.round+" rounds.</p><div class=\"row\"><button class=\"btn primary\" data-act=\"rematch\">Rematch</button><button class=\"btn\" data-act=\"tomenu\">Back to menu</button></div>");
   }
   return "";
 }
 function render(){
-  var root=$("#screen"),top=$("#topbtns");
+  var root=$("#screen"),top=$("#topbtns"),br=$(".brand");br.hidden=S.screen==="menu";
   if(S.screen==="menu"){root.innerHTML=menuHTML();top.innerHTML='<button class="btn small" data-act="rules">Rules</button>'}
   else{
     root.innerHTML=gameHTML();
-    top.innerHTML='<span class="meta">'+(S.game.over?"Finished":"Round "+S.game.round)+'</span><button class="btn small" data-act="speed">Speed: '+speedName()+'</button><button class="btn small" data-act="rules">Rules</button><button class="btn small" data-act="tomenu">Menu</button>';
+    top.innerHTML='<span class="meta">'+(S.game.over?"Finished":"Round "+S.game.round)+'</span><button class="btn small" data-act="speed">Speed: '+speedName()+'</button><button class="btn small" data-act="rules">Rules</button>';
     var ol=$("#logol");if(ol)ol.scrollTop=ol.scrollHeight;
   }
   $("#modal-root").innerHTML=modalHTML();
@@ -337,7 +336,13 @@ var ACT={
   handoffok:function(){var m=S.modal;m.res()},
   closemodal:function(){if(S.modal&&!S.modal.res){S.modal=null;render()}},
   rules:function(){if(!S.modal||!S.modal.res){S.modal={type:"rules"};render()}},
-  speed:function(){S.speed=S.speed===1?3:S.speed===3?0:S.speed===0?0.5:1;render()},
+  speed:function(){S.speed=S.speed===0.5?1:S.speed===1?0:0.5;render()},
+  share:function(){
+    var url=location.href.split("#")[0].split("?")[0];
+    if(navigator.share){navigator.share({title:"Fortitude",text:"A card game of kings, bluffs and bargains.",url:url}).catch(function(){})}
+    else if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(function(){toast("Link copied")},function(){toast(url)})}
+    else toast(url);
+  },
   rematch:function(){startGame()},
   tomenu:function(){abort()},
   start:startGame,

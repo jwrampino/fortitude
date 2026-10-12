@@ -1,14 +1,14 @@
 /* Layout: opponents' boards across the top, your board and hand below, a chronicle rail at the side. */
 :root{
-  --bg:#0e1b1f;--bg2:#13252a;--panel:#192f35;--panel2:#213b42;--line:#33505a;
-  --fg:#ece6d6;--mute:#9db2b3;--gold:#d3a94f;--gold-d:#8f6f26;--crim:#e0583f;--ok:#7cc79a;
+  --bg:#12262c;--bg2:#183339;--panel:#21424a;--panel2:#2c525c;--line:#4a7580;
+  --fg:#f7f2e4;--mute:#bccfce;--gold:#e8be58;--gold-d:#9a762a;--crim:#ee6249;--ok:#86d4a4;
   --card:#f4efe3;--card-ink:#1c2328;--card-red:#c43a2c;--back1:#25456f;--back2:#1b3659;
-  --font-display:'Bodoni Moda',Didot,'Bodoni 72',Georgia,serif;
+  --font-display:'Marcellus','Cinzel',Georgia,serif;
   --font-ui:'Hanken Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--fg);font:400 15px/1.45 var(--font-ui);min-height:100%}
+body{background:radial-gradient(ellipse 90% 55% at 50% -8%,#2e6068,transparent 70%),var(--bg);color:var(--fg);font:400 15px/1.45 var(--font-ui);min-height:100%}
 button{font:inherit;color:inherit}
 .shell{max-width:1320px;margin:0 auto;padding-inline:16px;padding-block:14px 40px}
 .top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-bottom:14px}
@@ -163,3 +163,54 @@ button.card:hover:enabled{transform:translateY(-6px)}
 .embers i{position:absolute;bottom:-4%;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold);opacity:0;animation:ember linear infinite}
 @keyframes ember{0%{bottom:-4%;opacity:0;transform:translateX(0)}12%{opacity:1}100%{bottom:104%;opacity:0;transform:translateX(20px)}}
 @media (prefers-reduced-motion:reduce){.embers{display:none}.vict .rays{animation:none}}
+
+/* brighter, more polished table */
+.brand svg{filter:drop-shadow(0 0 8px rgba(232,190,88,.65))}
+.btn{background:linear-gradient(180deg,#386068,#2b4f58);border-color:#5a8792;box-shadow:0 1px 0 rgba(255,255,255,.1) inset,0 2px 6px rgba(0,0,0,.25)}
+.btn:hover:enabled{background:linear-gradient(180deg,#427079,#315963);border-color:var(--gold);box-shadow:0 1px 0 rgba(255,255,255,.12) inset,0 0 14px rgba(232,190,88,.3)}
+.btn.primary{background:linear-gradient(180deg,#f6d57a,#e0b24a);border-color:#f6dc8f;color:#2a1e05;box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 6px 18px rgba(232,190,88,.35)}
+.btn.primary:hover:enabled{background:linear-gradient(180deg,#fbe08c,#e8bc55);box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 8px 24px rgba(232,190,88,.5)}
+.btn.danger{background:linear-gradient(180deg,#4b3a3d,#3a2c2f);border-color:#9a4a3d;color:#ffc2b5}
+.card{background:linear-gradient(160deg,#fffdf7,var(--card) 55%,#e8e0cc);box-shadow:0 1px 0 rgba(255,255,255,.8) inset,0 3px 10px rgba(0,0,0,.4)}
+.card.back{background:linear-gradient(160deg,#2f5a92,var(--back1))}
+.board{background:linear-gradient(180deg,#2b525b,var(--panel));box-shadow:0 10px 26px -16px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.08) inset;transition:box-shadow .25s,border-color .25s}
+.board.active{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold-d),0 0 30px -4px rgba(232,190,88,.5),0 1px 0 rgba(255,255,255,.1) inset}
+.bname{letter-spacing:.01em}
+.king{background:radial-gradient(circle at 50% 28%,#548a69,#1f4039);box-shadow:0 0 18px -4px rgba(232,190,88,.5)}
+.king svg{filter:drop-shadow(0 2px 6px rgba(232,190,88,.55))}
+.king.exposed{background:radial-gradient(circle at 50% 28%,#6a3a33,#2a1d22)}
+.slot.dead{border-color:#5d8a95;color:#5d8a95}
+.handbox,.chron{background:linear-gradient(180deg,#2b525b,var(--panel));box-shadow:0 10px 26px -16px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.08) inset}
+.chron{background:linear-gradient(180deg,#244850,var(--bg2))}
+.banner .msg{color:#fff6dc;text-shadow:0 2px 14px rgba(232,190,88,.35)}
+.dlg{background:linear-gradient(180deg,#2d5660,var(--panel));box-shadow:0 24px 60px -20px rgba(0,0,0,.8),0 0 0 1px rgba(232,190,88,.25)}
+.chip{background:linear-gradient(180deg,#386068,#2b4f58);border-color:#5a8792}
+.chip.on{background:linear-gradient(180deg,#f6d57a,#e0b24a);border-color:#f6dc8f}
+.setup{background:linear-gradient(180deg,#2b525b,var(--panel));box-shadow:0 18px 44px -22px rgba(0,0,0,.8),0 1px 0 rgba(255,255,255,.08) inset}
+.seg button.on{background:linear-gradient(180deg,#3d6670,#2f5560);color:var(--gold)}
+.hero{position:relative}
+.hero>*{position:relative}
+.hero::before{content:"";position:absolute;left:0;top:-30px;width:460px;height:460px;max-width:100%;margin-left:-70px;border-radius:50%;pointer-events:none;background:repeating-conic-gradient(rgba(232,190,88,.12) 0 7.5deg,transparent 7.5deg 15deg);-webkit-mask-image:radial-gradient(circle,#000 5%,transparent 62%);mask-image:radial-gradient(circle,#000 5%,transparent 62%)}
+.herocrown{width:64px;color:var(--gold);margin-bottom:10px;filter:drop-shadow(0 4px 16px rgba(232,190,88,.6))}
+.herocrown svg{width:100%;height:auto;display:block}
+.hero h1{background:linear-gradient(180deg,#fff6d2,#eec45f 55%,#c18f2e);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:var(--gold)}
+
+#sharebar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:40;display:flex;gap:8px;padding:8px 10px;border-radius:999px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.shell{padding-bottom:84px}
+@media (max-width:480px){#sharebar{gap:6px;padding:6px 8px;max-width:calc(100vw - 24px)}#sharebar .btn{padding-left:10px;padding-right:10px}}
+
+button.brand{background:none;border:0;color:inherit;cursor:pointer;padding:4px 6px;margin-left:-6px;border-radius:10px}
+button.brand:hover{background:rgba(255,255,255,.07)}
+.brand[hidden]{display:none}
+#topbtns{margin-left:auto}
+#sharebar a.btn{text-decoration:none;display:inline-flex;align-items:center}
+
+/* Marcellus ships one weight, so keep display text at 400 instead of faux bold */
+h1,h2,h3,.brand,.hero h1,.bname,.banner .msg,.seat .no,.stepc b,.ace-pend{font-weight:400}
+.hero h1{letter-spacing:.02em}
+/* a soft golden glow behind the crown and title, with a slow shine across the title */
+.hero::before{background:radial-gradient(circle,rgba(255,214,110,.34) 0,rgba(232,190,88,.12) 38%,transparent 66%);-webkit-mask-image:none;mask-image:none;animation:glow 6s ease-in-out infinite}
+@keyframes glow{0%,100%{opacity:.75;transform:scale(1)}50%{opacity:1;transform:scale(1.07)}}
+.hero h1{background:linear-gradient(105deg,transparent 42%,rgba(255,255,255,.95) 50%,transparent 58%) 160% 0/250% 100% no-repeat,linear-gradient(180deg,#fff6d2,#eec45f 55%,#c18f2e);-webkit-background-clip:text;background-clip:text;animation:shine 5.5s ease-in-out 1s infinite}
+@keyframes shine{0%{background-position:160% 0,0 0}45%,100%{background-position:-60% 0,0 0}}
+@media (prefers-reduced-motion:reduce){.hero::before,.hero h1{animation:none}}

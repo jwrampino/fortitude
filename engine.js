@@ -63,7 +63,7 @@ G.nextAlive=function(i){var j=i;for(var k=0;k<this.n;k++){j=(j+1)%this.n;if(this
 G.checkEnd=function(){
   if(this.over)return;
   for(var i=0;i<this.n;i++){var p=this.players[i];
-    if(p.alive&&p.jokers>=this.totalJokers){this.over=true;this.winner=i;this.reason="jokers";this.say(p.name+" has gathered every Joker. The jesters crown them sovereign!","win");return}}
+    if(p.alive&&p.jokers>=this.totalJokers){this.over=true;this.winner=i;this.reason="jokers";this.say(p.name+" has gathered a Joker for every seat. The jesters crown them sovereign!","win");return}}
   var al=this.players.filter(function(p){return p.alive});
   if(al.length===1){this.over=true;this.winner=this.players.indexOf(al[0]);this.reason="last";this.say(al[0].name+" is the last King standing.","win")}
 };
@@ -79,16 +79,21 @@ G.convertOptions=function(p){
   if(by.Q>=2)o.push({key:"QQ",from:["Q","Q"],to:"K",label:"Two Queens → King"});
   if(by.K>=2)o.push({key:"KK",from:["K","K"],to:"A",label:"Two Kings → Ace"});
   if(p.jokers>0)["J","Q","K"].forEach(function(r){if(by[r]>=1)o.push({key:"joker:"+r,from:["Joker",r],to:"A",label:"Joker + "+RN[r]+" → Ace"})});
+  if(by.A>=3)["J","Q","K"].forEach(function(r){o.push({key:"AAA:"+r,from:["A","A","A"],to:r,label:"Three Aces → "+RN[r]})});
+  if(by.A>=4)o.push({key:"AAAA",from:["A","A","A","A"],to:"Joker",label:"Four Aces → Joker"});
   return o;
 };
 G.doConvert=function(pi,key){
   var p=this.players[pi],opt=this.convertOptions(p).filter(function(o){return o.key===key})[0];
   if(!opt)return false;
   var rem=function(r,n){for(var k=0;k<n;k++){var ix=p.offense.findIndex(function(c){return c.rank===r});p.offense.splice(ix,1)}};
-  if(key.indexOf("joker:")===0){p.jokers--;rem(key.slice(6),1)}else rem(opt.from[0],2);
-  p.offense.push(mk(opt.to,SUITS[Math.floor(this.rand()*4)]));
+  if(key.indexOf("joker:")===0){p.jokers--;rem(key.slice(6),1)}
+  else if(key==="AAAA"){rem("A",4);p.jokers++}
+  else if(key.indexOf("AAA:")===0)rem("A",3);
+  else rem(opt.from[0],2);
+  if(opt.to!=="Joker")p.offense.push(mk(opt.to,SUITS[Math.floor(this.rand()*4)]));
   this.refill(p);
-  this.say(p.name+" converts cards into "+(opt.to==="A"?"an Ace":"a "+RN[opt.to])+".","sys");
+  this.say(p.name+" converts cards into "+(opt.to==="A"?"an Ace":opt.to==="Joker"?"a Joker":"a "+RN[opt.to])+".","sys");
   this.checkEnd();return true;
 };
 /* combat */
@@ -116,11 +121,12 @@ G.attackDefense=async function(ai,ti,si,hi){
 };
 G.aceAttack=function(ai,ti,hi){
   var A=this.players[ai],D=this.players[ti];
+  if(!A.offense[hi]||A.offense[hi].rank!=="A"||!D.alive||!this.exposed(D))return false;
   var card=A.offense.splice(hi,1)[0];
-  D.pending={from:ai};
-  this.say(A.name+" plays an Ace on "+D.name+"'s exposed King!","danger");
+  D.pending={from:ai,n:D.pending?D.pending.n+1:1};
+  this.say(D.pending.n>1?A.name+" piles another Ace on "+D.name+"'s King! "+D.pending.n+" Aces must be answered.":A.name+" plays an Ace on "+D.name+"'s exposed King!","danger");
   this.io.fx("king",{t:ti,res:"pending"});
-  this.refill(A);this.checkEnd();
+  this.refill(A);this.checkEnd();return true;
 };
 G.queen=function(pi,hi){
   var p=this.players[pi],si=p.defense.findIndex(function(d){return d.dead});
@@ -133,7 +139,7 @@ G.queen=function(pi,hi){
 G.defendAce=function(pi,how){
   var p=this.players[pi];if(!p.pending)return false;
   var ix=p.offense.findIndex(function(c){return c.rank===how});if(ix<0)return false;
-  p.offense.splice(ix,1);p.pending=null;this.refill(p);
+  p.offense.splice(ix,1);p.pending.n--;if(p.pending.n<=0)p.pending=null;this.refill(p);
   this.say(how==="K"?p.name+" blocks the Ace with a King.":p.name+" renews the King with an Ace.","good");
   this.io.fx("king",{t:pi,res:"blocked"});this.checkEnd();return true;
 };
@@ -207,8 +213,12 @@ G.botConvertStep=function(i,desperate){
   var p=this.players[i],lv=p.level,opts=this.convertOptions(p);
   var get=function(k){return opts.filter(function(o){return o.key===k})[0]};
   var cnt=function(r){return p.offense.filter(function(c){return c.rank===r}).length};
-  var dead=this.deadCount(p),key=null;
-  if(get("KK"))key="KK";
+  var dead=this.deadCount(p),key=null,self=this;
+  var target=this.players.some(function(x,ix){return ix!==i&&x.alive&&self.exposed(x)});
+  if(get("AAAA")&&!target&&!desperate)key="AAAA";
+  if(!key&&get("AAA:Q")&&!target&&lv!=="easy"&&dead>0&&cnt("Q")===0)key="AAA:Q";
+  if(!key&&get("AAA:K")&&!target&&lv!=="easy"&&this.exposed(p)&&cnt("K")===0)key="AAA:K";
+  if(!key&&get("KK"))key="KK";
   if(!key){key=["joker:J","joker:Q","joker:K"].filter(get)[0]||null}
   if(!key&&get("QQ")&&(desperate||cnt("K")===0||lv==="hard"))key="QQ";
   if(!key&&get("JJ")&&(desperate||cnt("Q")===0&&(dead>0||lv==="hard")))key="JJ";
@@ -224,7 +234,7 @@ G.botChoose=function(i){
   var p=this.players[i],lv=p.level,r=this.rand,self=this,opts=[];
   var opps=this.players.map(function(x,ix){return ix}).filter(function(ix){return ix!==i&&self.players[ix].alive});
   var aIx=p.offense.findIndex(function(c){return c.rank==="A"});
-  if(aIx>=0)opps.forEach(function(t){var T=self.players[t];if(self.exposed(T)&&!T.pending)opts.push({type:"ace",t:t,hi:aIx,score:100+r()})});
+  if(aIx>=0)opps.forEach(function(t){var T=self.players[t];if(!self.exposed(T))return;if(!T.pending)opts.push({type:"ace",t:t,hi:aIx,score:100+r()});else if(lv!=="easy")opts.push({type:"ace",t:t,hi:aIx,score:97+r()})});
   var qIx=p.offense.findIndex(function(c){return c.rank==="Q"}),dead=this.deadCount(p);
   if(qIx>=0&&dead>0)opts.push({type:"queen",hi:qIx,score:(lv==="easy"?3.5:4.5+dead*2.2)+(this.exposed(p)?30:0)+r()*0.5});
   var seen={};
@@ -258,7 +268,9 @@ G.botChoose=function(i){
 G.botTurn=async function(i){
   var p=this.players[i],g=0;
   await this.pause(500);if(this.aborted)return;
-  if(p.pending){
+  var gd=0;
+  while(p.pending&&gd++<12){
+    g=0;
     if(!this.canDefend(p)){
       while(g++<8&&!this.canDefend(p)&&this.botConvertStep(i,true))await this.pause(450);
     }
