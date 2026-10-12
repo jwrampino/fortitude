@@ -106,7 +106,7 @@ function youHTML(){
       '<button class="btn" data-act="pass"'+(canAct&&!p.pending?"":" disabled")+">Discard &amp; pass</button>"+
       '<button class="btn danger" data-act="concede"'+(canAct?"":" disabled")+">Concede</button></div>";
   }
-  return '<div class="you">'+boardHTML(v,tg)+'<div class="handbox">'+hand+"</div></div>";
+  return '<div class="handbox">'+hand+"</div>";
 }
 function speedName(){return S.speed===0.5?"Slow":S.speed===1?"Normal":"Immediate"}
 function logHTML(){
@@ -117,7 +117,10 @@ function gameHTML(){
   var g=S.game,v=S.viewer,order=[],tg=targeting();
   if(v===null){g.players.forEach(function(_,i){order.push(i)})}
   else for(var k=1;k<g.n;k++)order.push((v+k)%g.n);
-  return '<div class="play"><div class="table">'+bannerHTML()+'<div class="opps'+(order.length===3?" o3":"")+'">'+order.map(function(i){return boardHTML(i,tg)}).join("")+"</div>"+(v!==null?youHTML():"")+"</div>"+logHTML()+"</div>";
+  /* two columns: opponents fill left to right, then your board; your hand always sits in the right column */
+  var cells=order.map(function(i){return boardHTML(i,tg)}).join("");
+  if(v!==null)cells+=boardHTML(v,tg)+youHTML();
+  return '<div class="play"><div class="table">'+bannerHTML()+'<div class="arena">'+cells+"</div></div>"+logHTML()+"</div>";
 }
 /* ---------- menu ---------- */
 function miniRow(list){return '<div class="minis">'+list.map(function(c){return cardHTML({rank:c[0],suit:c[1]},{})}).join("")+"</div>"}

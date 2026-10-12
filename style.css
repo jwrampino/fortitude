@@ -209,7 +209,9 @@ h1,h2,h3,.brand,.hero h1,.bname,.banner .msg,.seat .no,.stepc b,.ace-pend{font-w
 @media (prefers-reduced-motion:reduce){.hero::before,.hero h1{animation:none}}
 
 
-.opps.o3{grid-template-columns:repeat(auto-fit,minmax(min(100%,262px),1fr))}
+.arena{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+.arena .handbox{grid-column:2}
+@media (max-width:700px){.arena{grid-template-columns:minmax(0,1fr)}.arena .handbox{grid-column:1}}
 .brand svg{transform:translateY(-3px)}
 
 html{min-height:100vh}
