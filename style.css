@@ -204,7 +204,7 @@ h1,h2,h3,.brand,.hero h1,.bname,.banner .msg,.seat .no,.stepc b,.ace-pend{font-w
 /* a soft golden glow behind the crown and title, with a slow shine across the title */
 .hero::before{content:"";position:absolute;left:0;top:-30px;width:460px;height:460px;max-width:100%;margin-left:-70px;border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(255,214,110,.34) 0,rgba(232,190,88,.12) 38%,transparent 66%);animation:herglow 6s ease-in-out infinite}
 @keyframes herglow{0%,100%{opacity:.75;transform:scale(1)}50%{opacity:1;transform:scale(1.07)}}
-.hero h1{background:linear-gradient(105deg,transparent 42%,rgba(255,255,255,.95) 50%,transparent 58%) 160% 0/250% 100% no-repeat,linear-gradient(180deg,#fff6d2,#eec45f 55%,#c18f2e);-webkit-background-clip:text;background-clip:text;animation:shine 5.5s ease-in-out 1s infinite}
+.hero h1{background:linear-gradient(105deg,transparent 42%,rgba(255,255,255,.95) 50%,transparent 58%) 160% 0/250% 100% no-repeat,linear-gradient(180deg,#fff6d2,#eec45f 55%,#c18f2e);-webkit-background-clip:text;background-clip:text;animation:shine 4.4s ease-in-out 1s infinite}
 @keyframes shine{0%{background-position:160% 0,0 0}45%,100%{background-position:-60% 0,0 0}}
 @media (prefers-reduced-motion:reduce){.hero::before,.hero h1{animation:none}}
 
@@ -216,8 +216,4 @@ html{min-height:100vh}
 body{background-repeat:no-repeat}
 .linkwrap{display:flex;justify-content:center;width:min(100%,486px);margin-top:64px}
 .linkrow{display:flex;gap:12px;padding:8px 10px;border-radius:999px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.35)}
-.linkrow .btn{position:relative;overflow:hidden;padding:10px 24px;font-size:.95rem}
-.linkrow .btn::after{content:"";position:absolute;top:0;bottom:0;left:0;width:100%;background:linear-gradient(105deg,transparent 38%,rgba(255,255,255,.75) 50%,transparent 62%);transform:translateX(-130%);animation:btnshine 5.5s ease-in-out 1.6s infinite;pointer-events:none}
-.linkrow .btn+.btn::after{animation-delay:2.1s}
-@keyframes btnshine{0%{transform:translateX(-130%)}40%,100%{transform:translateX(130%)}}
-@media (prefers-reduced-motion:reduce){.linkrow .btn::after{animation:none;display:none}}
+.linkrow .btn{padding:7px 18px;font-size:.88rem}
