@@ -18,6 +18,10 @@ function killProb(slot,rank){
   for(var d2=2;d2<=10;d2++)w+=c>d2?1:c===d2?0.45:0;
   return w/9;
 }
+function canStrike(card,slot){
+  if(isNumR(card.rank))return true;
+  return card.rank==="J"&&!!slot.up&&slot.card.rank==="10";
+}
 function Game(seats,io,opts){
   opts=opts||{};
   this.io=Object.assign({sleep:function(){return Promise.resolve()},changed:function(){},fx:function(){},
@@ -87,6 +91,7 @@ G.doConvert=function(pi,key){
 /* combat */
 G.attackDefense=async function(ai,ti,si,hi){
   var A=this.players[ai],D=this.players[ti],slot=D.defense[si];
+  if(!A.offense[hi]||!slot||slot.dead||!canStrike(A.offense[hi],slot))return {res:"illegal"};
   var card=A.offense.splice(hi,1)[0];
   var av=rv(card.rank),dv=rv(slot.card.rank);
   this.say(A.name+" strikes "+D.name+"'s defense with "+cs(card)+".","attack");
@@ -233,6 +238,15 @@ G.botChoose=function(i){
       });
     });
   });
+  var jIx=p.offense.findIndex(function(c){return c.rank==="J"});
+  if(jIx>=0)opps.forEach(function(t){
+    var T=self.players[t];if(self.exposed(T))return;
+    var live=self.liveCount(T);
+    T.defense.forEach(function(d,s){
+      if(d.dead||!d.up||d.card.rank!=="10")return;
+      opts.push({type:"strike",t:t,s:s,hi:jIx,score:8+(4-live)*3+(live===1?6:0)-2+r()*0.3});
+    });
+  });
   opts.sort(function(a,b){return b.score-a.score});
   var best=opts[0];
   if(!best||best.score<0.4)return {type:"discard",hi:this.botDiscardIdx(p)};
@@ -273,5 +287,5 @@ G.run=async function(){
   }
   if(!this.aborted)this.io.gameOver(this);
 };
-root.Fortitude={Game:Game,RANKS:RANKS,SUITS:SUITS,NUMS:NUMS,RN:RN,rv:rv,isNumR:isNumR,isFaceR:isFaceR,cs:cs,worth:worth};
+root.Fortitude={canStrike:canStrike,Game:Game,RANKS:RANKS,SUITS:SUITS,NUMS:NUMS,RN:RN,rv:rv,isNumR:isNumR,isFaceR:isFaceR,cs:cs,worth:worth};
 })(typeof window!=="undefined"?window:globalThis);

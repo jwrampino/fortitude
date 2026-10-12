@@ -34,13 +34,13 @@ function backHTML(o){o=o||{};var tag=o.act?"button":"div",a=['class="card back '
 function targeting(){
   var v=S.viewer;if(v===null||!S.ctx||S.ctx.i!==v||S.busy||S.modal||S.sel==null)return null;
   var p=S.game.players[v];if(p.pending)return null;var c=p.offense[S.sel];if(!c)return null;
-  if(F.isNumR(c.rank))return "slot";if(c.rank==="A")return "king";return null;
+  if(F.isNumR(c.rank))return "slot";if(c.rank==="J")return "jack";if(c.rank==="A")return "king";return null;
 }
 function fxc(key){var u=S.fx[key];return u&&u>Date.now()?" fx-"+S.fx[key+"r"]:""}
 function slotHTML(d,i,s,tg,mine,p){
   var g=S.game;
   if(d.dead)return '<div class="slot dead'+fxc("s"+i+"-"+s)+'">✕</div>';
-  var can=tg==="slot"&&i!==S.viewer&&p.alive&&!g.exposed(p);
+  var can=(tg==="slot"||(tg==="jack"&&d.up&&d.card.rank==="10"))&&i!==S.viewer&&p.alive&&!g.exposed(p);
   var cls=(can?"target ":"")+fxc("s"+i+"-"+s);
   var o={act:can?"strike":null,t:i,s:s,cls:cls};
   if(d.up)return '<div class="slot">'+cardHTML(d.card,{act:can?"strike":null,t:i,s:s,cls:"held "+cls})+"</div>";
@@ -76,6 +76,7 @@ function hintText(p,canAct){
   if(!c)return "Select a card to play. Trade or convert first if you like, then play one card to end your turn.";
   if(F.isNumR(c.rank))return "Click a defense card on any opponent board to strike it with "+F.cs(c)+".";
   if(c.rank==="A")return S.game.players.some(function(q,i){return i!==S.viewer&&S.game.exposed(q)&&!q.pending})?"Click an exposed King to play your Ace.":"Aces can only hit an exposed King, and none are exposed yet.";
+  if(c.rank==="J")return S.game.players.some(function(q,i){return i!==S.viewer&&q.alive&&!S.game.exposed(q)&&q.defense.some(function(d){return !d.dead&&d.up&&d.card.rank==="10"})})?"A Jack can destroy a face-up 10. Click one, or keep the Jack for tie defense.":"A Jack can only strike a face-up 10, and none are showing. Keep it for ties, or convert it.";
   if(c.rank==="Q")return S.game.deadCount(p)>0?"Play the Queen to raise a new defense.":"You have no broken defenses to restore.";
   return "A "+F.RN[c.rank]+" can't attack. Keep it for defense, or convert it.";
 }
@@ -142,7 +143,7 @@ function handCards(p,fn){return '<div class="hand">'+p.offense.map(function(c,i)
 var RULES='<div class="rules"><h2>How to play</h2><h3>Goal</h3><ul><li>Be the last King standing, or collect every Joker in the deck (one per seat).</li></ul>'+
 '<h3>Your board</h3><ul><li>A King, four face-down numeric defense cards, and four offense cards. Cards are drawn with replacement. Jokers go to a side pool.</li><li>You can peek at your own face-down defenses.</li></ul>'+
 '<h3>On your turn</h3><ul><li>Trade and convert as often as you like, then play one card to end the turn. If nothing is playable, discard a card to pass.</li></ul>'+
-'<h3>Striking a defense</h3><ul><li>Only numeric cards attack defenses. Higher destroys it. Lower fails and flips it face up.</li><li>Tie: the defender may answer with a Jack or a higher numeric card, or the defense falls.</li><li>A Queen raises a new defense in a broken slot.</li></ul>'+
+'<h3>Striking a defense</h3><ul><li>Only numeric cards attack defenses. Higher destroys it. Lower fails and flips it face up.</li><li>One exception: a Jack can destroy a face-up 10. It can\'t hit a face-down 10, or any other card.</li><li>Tie: the defender may answer with a Jack or a higher numeric card, or the defense falls.</li><li>A Queen raises a new defense in a broken slot.</li></ul>'+
 '<h3>Kings and Aces</h3><ul><li>With all four defenses broken the King is exposed. Only an Ace can hit it.</li><li>The Ace is pending until the defender\'s next turn. They may trade and convert first, then must discard a King to block, or an Ace to renew, or fall.</li></ul>'+
 '<h3>Conversions</h3><ul><li>Two of a number → Jack · two Jacks → Queen · two Queens → King · two Kings → Ace · Joker + J/Q/K → Ace.</li></ul>'+
 '<h3>Trading</h3><ul><li>Offer one card, name the rank you want. The other player accepts and picks which matching card to give, or declines. Hands stay at four cards.</li></ul></div>';
