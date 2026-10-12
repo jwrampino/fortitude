@@ -26,7 +26,6 @@ function Game(seats,io,opts){
   opts=opts||{};
   this.io=Object.assign({sleep:function(){return Promise.resolve()},changed:function(){},fx:function(){},
     humanTurn:function(){return Promise.resolve()},askTie:function(){return Promise.resolve(-1)},
-    askTrade:function(){return Promise.resolve({accept:false})},askDiscard:function(){return Promise.resolve(0)},
     turnStart:function(){},gameOver:function(){}},io||{});
   this.rand=opts.rand||Math.random;
   this.maxRounds=opts.maxRounds||600;
@@ -147,54 +146,7 @@ G.discardPass=function(pi,hi){
   var p=this.players[pi];p.offense.splice(hi,1);this.refill(p);
   this.say(p.name+" discards a card and passes.","sys");this.checkEnd();
 };
-/* trading */
-G.trimHand=async function(x,xi){
-  while(x.offense.length>4){
-    var ix=x.bot?this.botDiscardIdx(x):await this.io.askDiscard(xi);
-    if(!(ix>=0&&ix<x.offense.length))ix=0;
-    x.offense.splice(ix,1);
-  }
-};
-G.trade=async function(pi,ti,offer,req){
-  var p=this.players[pi],q=this.players[ti];
-  if(offer==="joker"&&req==="JOKER")return {ok:false,reason:"invalid"};
-  var offered=offer==="joker"?JOK():p.offense[offer];
-  if(!offered||(offer==="joker"&&p.jokers<1))return {ok:false,reason:"invalid"};
-  this.say(p.name+" offers "+q.name+" "+(offer==="joker"?"a Joker":cs(offered))+" for "+(req==="JOKER"?"a Joker":"a "+req)+".","trade");
-  var reply;
-  if(q.bot){await this.pause(700);reply=this.botTradeReply(q,p,offered,req)}
-  else reply=await this.io.askTrade(ti,{from:pi,to:ti,offered:offered,req:req});
-  var gi=reply&&reply.giveIdx,gave=null;
-  if(reply&&reply.accept){
-    if(req==="JOKER"){if(q.jokers>0)gave=JOK()}
-    else{var c=q.offense[gi];if(c&&c.rank===req)gave=c}
-  }
-  if(this.aborted||!gave){this.say(q.name+" declines.","trade");return {ok:false,reason:"declined"}}
-  if(offer==="joker"){p.jokers--;q.jokers++}else{p.offense.splice(offer,1);q.offense.push(offered)}
-  if(req==="JOKER"){q.jokers--;p.jokers++}else{q.offense.splice(gi,1);p.offense.push(gave)}
-  this.say(p.name+" and "+q.name+" shake on it.","trade");
-  await this.trimHand(p,pi);await this.trimHand(q,ti);
-  this.refill(p);this.refill(q);this.checkEnd();
-  return {ok:true,got:gave};
-};
 /* bots */
-G.botTradeReply=function(q,p,offered,req){
-  var lv=q.level,gi=-1,loss;
-  if(req==="JOKER"){
-    if(q.jokers<1||p.jokers+1>=this.totalJokers)return {accept:false};
-    loss=10;
-  }else{
-    for(var k=0;k<q.offense.length;k++){var c=q.offense[k];if(c.rank===req&&(gi<0||worth(c)<worth(q.offense[gi])))gi=k}
-    if(gi<0)return {accept:false};
-    loss=worth(q.offense[gi]);
-  }
-  var gain=offered.joker?10:worth(offered);
-  if(offered.joker&&q.jokers+1>=this.totalJokers)gain=100;
-  if(q.pending&&(req==="K"||req==="A"))return {accept:false};
-  var margin={easy:-0.8,normal:0.25,hard:0.9}[lv];
-  var jitter=(this.rand()-0.5)*(lv==="easy"?3:lv==="normal"?1:0.3);
-  return {accept:gain>=loss+margin+jitter,giveIdx:gi};
-};
 G.botTie=function(D,av){
   var best=-1,bw=99;
   D.offense.forEach(function(c,ix){
