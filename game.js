@@ -107,7 +107,7 @@ function youHTML(){
   }
   return '<div class="you">'+boardHTML(v,tg)+'<div class="handbox">'+hand+"</div></div>";
 }
-function speedName(){return S.speed===1?"Normal":S.speed===3?"Fast":"Instant"}
+function speedName(){return S.speed===0.5?"Slow":S.speed===1?"Normal":S.speed===3?"Fast":"Instant"}
 function logHTML(){
   var g=S.game,items=g.log.slice(-70).map(function(l){return '<li class="k-'+l.kind+'">'+fmt(l.msg)+"</li>"}).join("");
   return '<aside class="chron"><h3>Chronicle</h3><ol id="logol">'+items+"</ol></aside>";
@@ -329,7 +329,7 @@ var ACT={
   handoffok:function(){var m=S.modal;m.res()},
   closemodal:function(){if(S.modal&&!S.modal.res){S.modal=null;render()}},
   rules:function(){if(!S.modal||!S.modal.res){S.modal={type:"rules"};render()}},
-  speed:function(){S.speed=S.speed===1?3:S.speed===3?0:1;render()},
+  speed:function(){S.speed=S.speed===1?3:S.speed===3?0:S.speed===0?0.5:1;render()},
   rematch:function(){startGame()},
   tomenu:function(){abort()},
   start:startGame,
