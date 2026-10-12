@@ -1,7 +1,7 @@
 (function(){
 "use strict";
 var F=window.Fortitude,Game=F.Game;
-var NAMES=["Ser Aldous","Lady Maren","Brother Voss","Queen Ysolde","Duke Corvin","Dame Tamsin"];
+var NAMES=["Lord Halvard","Lady Isolde","Friar Quillon","King Osric","Baron Thessaly","Dame Rowena"];
 var CROWN='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2.5 8l4.8 4.2L12 4l4.7 8.2L21.5 8 20 17.5H4z"/><rect fill="currentColor" x="4" y="19" width="16" height="2.4" rx=".8"/></svg>';
 function defSeats(){return [{name:"You",bot:false,level:"normal"},{name:NAMES[0],bot:true,level:"normal"},{name:NAMES[1],bot:true,level:"normal"}]}
 function loadSeats(){try{var s=JSON.parse(localStorage.getItem("fortitude.seats")||"null");
