@@ -134,3 +134,32 @@ button.card:hover:enabled{transform:translateY(-6px)}
   .seat select,.seat .del{grid-column:2 / -1}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* joker win celebration */
+.dlg.fest{position:relative;overflow:hidden;text-align:center;align-items:center;border-color:var(--gold);background:radial-gradient(circle at 50% 0%,#33503f,var(--panel) 72%)}
+.fest h2{font-size:clamp(1.8rem,6vw,2.7rem);color:var(--gold);line-height:1.05}
+.fest p{max-width:42ch}
+.fest .jk{display:flex;justify-content:center;padding:18px 0 8px;--cw:72px;position:relative}
+.fest .jw{display:block;margin-inline:-9px;transform:rotate(var(--r,0deg));animation:jig 1.5s ease-in-out infinite}
+@keyframes jig{0%,100%{transform:translateY(0) rotate(var(--r,0deg))}50%{transform:translateY(-12px) rotate(var(--r,0deg))}}
+.confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.confetti i{position:absolute;top:-6%;width:8px;height:14px;opacity:.95;border-radius:1px;animation:fall linear infinite}
+@keyframes fall{0%{top:-6%;transform:rotate(0)}100%{top:104%;transform:rotate(720deg)}}
+@media (prefers-reduced-motion:reduce){.confetti{display:none}}
+
+/* last-king victory */
+.dlg.vict{position:relative;overflow:hidden;text-align:center;align-items:center;border-color:var(--gold);background:radial-gradient(circle at 50% 26%,#3a5a47,var(--panel) 70%);padding-top:30px}
+.vict .rays{position:absolute;left:50%;top:92px;width:600px;height:600px;margin:-300px 0 0 -300px;border-radius:50%;pointer-events:none;background:repeating-conic-gradient(from 0deg,rgba(211,169,79,.24) 0 7.5deg,transparent 7.5deg 15deg);-webkit-mask-image:radial-gradient(circle,#000 6%,transparent 66%);mask-image:radial-gradient(circle,#000 6%,transparent 66%);animation:spin 40s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.vict .crownwrap{position:relative;width:104px;color:var(--gold);filter:drop-shadow(0 6px 18px rgba(211,169,79,.55));animation:crowndrop .95s cubic-bezier(.3,1.5,.5,1) both,glow 2.6s ease-in-out .95s infinite}
+.vict .crownwrap svg{width:100%;height:auto;display:block}
+@keyframes crowndrop{0%{transform:translateY(-150px) rotate(-14deg);opacity:0}55%{opacity:1}100%{transform:none}}
+@keyframes glow{50%{filter:drop-shadow(0 6px 30px rgba(244,208,110,.95))}}
+.vict h2{position:relative;font-size:clamp(1.8rem,6vw,2.7rem);color:var(--gold);line-height:1.05;animation:rise .7s ease-out .55s both}
+.vict p{position:relative;max-width:42ch;animation:rise .7s ease-out .85s both}
+.vict .row{position:relative;animation:rise .7s ease-out 1.15s both}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.embers{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.embers i{position:absolute;bottom:-4%;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold);opacity:0;animation:ember linear infinite}
+@keyframes ember{0%{bottom:-4%;opacity:0;transform:translateX(0)}12%{opacity:1}100%{bottom:104%;opacity:0;transform:translateX(20px)}}
+@media (prefers-reduced-motion:reduce){.embers{display:none}.vict .rays{animation:none}}

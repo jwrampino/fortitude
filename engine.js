@@ -30,6 +30,7 @@ function Game(seats,io,opts){
     turnStart:function(){},gameOver:function(){}},io||{});
   this.rand=opts.rand||Math.random;
   this.maxRounds=opts.maxRounds||600;
+  this.jokerDecay=opts.jokerDecay!=null?opts.jokerDecay:0.5;
   this.players=seats.map(function(s){return {name:s.name,bot:!!s.bot,level:s.level||"normal",alive:true,defense:[],offense:[],jokers:0,pending:null}});
   this.n=this.players.length;this.totalJokers=this.n;this.turn=0;this.round=1;
   this.over=false;this.winner=null;this.reason="";this.log=[];this.aborted=false;this.stats={turns:0};
@@ -38,10 +39,12 @@ function Game(seats,io,opts){
 var G=Game.prototype;
 G.say=function(msg,kind){this.log.push({msg:msg,kind:kind||"sys"});if(this.log.length>400)this.log.shift();this.io.changed()};
 G.pause=function(ms){return this.aborted?Promise.resolve():this.io.sleep(ms)};
+G.jokersHeld=function(){var h=0;this.players.forEach(function(p){if(p.alive)h+=p.jokers});return h};
+G.jokerWeight=function(){return this.totalJokers*Math.pow(this.jokerDecay,this.jokersHeld())};
 G.draw=function(){
-  var total=52+this.totalJokers,x=Math.floor(this.rand()*total);
-  if(x<this.totalJokers)return JOK();
-  var y=x-this.totalJokers;return mk(RANKS[Math.floor(y/4)],SUITS[y%4]);
+  var w=this.jokerWeight(),x=this.rand()*(52+w);
+  if(x<w)return JOK();
+  var y=Math.min(51,Math.floor(x-w));return mk(RANKS[Math.floor(y/4)],SUITS[y%4]);
 };
 G.drawNum=function(){for(;;){var c=this.draw();if(!c.joker&&isNumR(c.rank))return c}};
 G.deal=function(p){
@@ -60,12 +63,12 @@ G.nextAlive=function(i){var j=i;for(var k=0;k<this.n;k++){j=(j+1)%this.n;if(this
 G.checkEnd=function(){
   if(this.over)return;
   for(var i=0;i<this.n;i++){var p=this.players[i];
-    if(p.alive&&p.jokers>=this.totalJokers){this.over=true;this.winner=i;this.reason="jokers";this.say(p.name+" holds every Joker and wins on the spot!","win");return}}
+    if(p.alive&&p.jokers>=this.totalJokers){this.over=true;this.winner=i;this.reason="jokers";this.say(p.name+" has gathered every Joker. The jesters crown them sovereign!","win");return}}
   var al=this.players.filter(function(p){return p.alive});
   if(al.length===1){this.over=true;this.winner=this.players.indexOf(al[0]);this.reason="last";this.say(al[0].name+" is the last King standing.","win")}
 };
 G.eliminate=function(i,why){
-  var p=this.players[i];p.alive=false;p.pending=null;
+  var p=this.players[i];p.alive=false;p.pending=null;p.jokers=0;
   this.say(p.name+" "+why+" and is out of the game.","danger");this.io.fx("king",{t:i,res:"fallen"});this.checkEnd();
 };
 /* conversions */
