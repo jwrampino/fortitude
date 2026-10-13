@@ -17,9 +17,17 @@ function stateFeats(g,i,v){
   v.push(p.pending?p.pending.n/2:0);
   var sum=0,k=0,tens=0;p.defense.forEach(function(d){if(!d.dead){sum+=rv(d.card.rank);k++;if(d.card.rank==="10")tens++}});
   v.push(k?sum/k/10:0);v.push(tens/4);
-  var opps=g.players.filter(function(q,j){return j!==i&&q.alive});
-  v.push(opps.length/5);v.push(opps.some(function(q){return g.exposed(q)})?1:0);
-  v.push(opps.length?Math.min.apply(null,opps.map(function(q){return g.liveCount(q)}))/4:0);
+  var all=g.players.filter(function(q,j){return j!==i}),alive=all.filter(function(q){return q.alive});
+  v.push(alive.length/5);v.push(alive.some(function(q){return g.exposed(q)})?1:0);
+  v.push(alive.length?Math.min.apply(null,alive.map(function(q){return g.liveCount(q)}))/4:0);
+  var ord=all.slice().sort(function(a,c2){return ((c2.alive?1:0)-(a.alive?1:0))||(g.liveCount(a)-g.liveCount(c2))});
+  for(var s=0;s<5;s++){var q=ord[s];
+    if(!q||!q.alive){for(var z=0;z<7;z++)v.push(0);continue}
+    var ups=q.defense.filter(function(d){return !d.dead&&d.up}).map(function(d){return rv(d.card.rank)});
+    v.push(1);v.push(g.liveCount(q)/4);v.push(g.exposed(q)?1:0);v.push(q.pending?q.pending.n/2:0);
+    v.push(ups.length/4);v.push(ups.length?ups.reduce(function(x,y){return x+y},0)/ups.length/10:0);v.push(ups.length?Math.max.apply(null,ups)/10:0);
+  }
+  p.defense.map(function(d){return d.dead?0:rv(d.card.rank)/10}).sort(function(x,y){return y-x}).forEach(function(x){v.push(x)});
   v.push(Math.min(g.round,60)/60);v.push(g.n/6);v.push(g.jokersHeld()/g.totalJokers);
 }
 function killP(slot,a){
