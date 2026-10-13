@@ -5,7 +5,7 @@ var NAMES=["Lord Halvard","Lady Isolde","Friar Quillon","King Osric","Baron Thes
 var CROWN='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2.5 8l4.8 4.2L12 4l4.7 8.2L21.5 8 20 17.5H4z"/><rect fill="currentColor" x="4" y="19" width="16" height="2.4" rx=".8"/></svg>';
 function defSeats(){return [{name:"Challenger",bot:false,level:"normal"},{name:NAMES[0],bot:true,level:"normal"},{name:NAMES[1],bot:true,level:"normal"}]}
 function loadSeats(){try{var s=JSON.parse(localStorage.getItem("fortitude.seats")||"null");
-  if(Array.isArray(s)&&s.length>=2&&s.length<=6)return s.map(function(x){return {name:(String(x.name||"").slice(0,16)==="You"?"Challenger":String(x.name||"").slice(0,16)),bot:!!x.bot,level:["easy","normal","hard"].indexOf(x.level)>=0?x.level:"normal"}})}catch(e){}return defSeats()}
+  if(Array.isArray(s)&&s.length>=2&&s.length<=6)return s.map(function(x){return {name:(String(x.name||"").slice(0,16)==="You"?"Challenger":String(x.name||"").slice(0,16)),bot:!!x.bot,level:["easy","normal","hard","expert"].indexOf(x.level)>=0?x.level:"normal"}})}catch(e){}return defSeats()}
 function saveSeats(){try{localStorage.setItem("fortitude.seats",JSON.stringify(S.seats))}catch(e){}}
 var S={screen:"menu",seats:loadSeats(),game:null,viewer:null,sel:null,modal:null,speed:0.5,ctx:null,busy:false,fx:{},raf:0,over:null};
 var $=function(s){return document.querySelector(s)};
@@ -127,7 +127,7 @@ function menuHTML(){
   var seats=S.seats.map(function(s,i){
     return '<div class="seat"><span class="no">'+(i+1)+'</span><input id="seat-name-'+i+'" data-name="'+i+'" value="'+esc(s.name)+'" maxlength="16" aria-label="Seat '+(i+1)+' name">'+
       '<div class="seg"><button data-act="seattype" data-i="'+i+'" data-v="h" class="'+(s.bot?"":"on")+'">Human</button><button data-act="seattype" data-i="'+i+'" data-v="b" class="'+(s.bot?"on":"")+'">Bot</button></div>'+
-      '<select data-level="'+i+'" aria-label="Bot level"'+(s.bot?"":" hidden")+'>'+["easy","normal","hard"].map(function(l){return '<option value="'+l+'"'+(s.level===l?" selected":"")+">"+l[0].toUpperCase()+l.slice(1)+"</option>"}).join("")+"</select>"+
+      '<select data-level="'+i+'" aria-label="Bot level"'+(s.bot?"":" hidden")+'>'+["easy","normal","hard","expert"].map(function(l){return '<option value="'+l+'"'+(s.level===l?" selected":"")+">"+l[0].toUpperCase()+l.slice(1)+"</option>"}).join("")+"</select>"+
       '<button class="btn small del" data-act="delseat" data-i="'+i+'"'+(S.seats.length<=2?" disabled":"")+' aria-label="Remove seat">✕</button></div>';
   }).join("");
   return '<div class="menu"><section class="hero"><div class="herocrown" aria-hidden="true">'+CROWN+'</div><h1>Fortitude</h1><p class="tag">A card game of kings, bluffs and bargains.</p>'+
