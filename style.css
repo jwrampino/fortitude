@@ -142,6 +142,7 @@ button.card:hover:enabled{transform:translateY(-6px)}
 .fest p{max-width:42ch}
 .fest .jk{display:flex;justify-content:center;padding:18px 0 8px;--cw:72px;position:relative}
 .fest .jw{display:block;margin-inline:-9px;transform:rotate(var(--r,0deg));animation:jig 1.5s ease-in-out infinite}
+@media (max-width:480px){.fest .jk{--cw:54px}}
 @keyframes jig{0%,100%{transform:translateY(0) rotate(var(--r,0deg))}50%{transform:translateY(-12px) rotate(var(--r,0deg))}}
 .confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .confetti i{position:absolute;top:-6%;width:8px;height:14px;opacity:.95;border-radius:1px;animation:fall linear infinite}

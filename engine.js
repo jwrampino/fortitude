@@ -29,9 +29,15 @@ function Game(seats,io,opts){
     turnStart:function(){},gameOver:function(){}},io||{});
   this.rand=opts.rand||Math.random;
   this.maxRounds=opts.maxRounds||600;
-  this.jokerDecay=opts.jokerDecay!=null?opts.jokerDecay:0.5;
-  this.players=seats.map(function(s){return {name:s.name,bot:!!s.bot,level:s.level||"normal",alive:true,defense:[],offense:[],jokers:0,pending:null}});
-  this.n=this.players.length;this.totalJokers=this.n;this.turn=0;this.round=1;
+  /* Joker supply: each Joker held multiplies the draw weight by a factor that fades back toward 1 (jokerBase, then 1-(1-jokerBase)*jokerFade^(k-1)),
+     nudged by a small random jitter fixed when that Joker is gained.
+     With no Jokers held the weight equals the nominal one-Joker weight, so the first draw is as likely as the second. */
+  this.jokerBase=opts.jokerBase!=null?opts.jokerBase:0.5;
+  this.jokerFade=opts.jokerFade!=null?opts.jokerFade:0.8;
+  this.jokerJitter=opts.jokerJitter!=null?opts.jokerJitter:0.08;
+  this.jokerExtra=opts.jokerExtra!=null?opts.jokerExtra:3;
+  this.players=seats.map(function(s){return {name:s.name,bot:!!s.bot,level:s.level||"normal",alive:true,defense:[],offense:[],jokers:0,jn:[],pending:null}});
+  this.n=this.players.length;this.totalJokers=this.n;this.jokerGoal=this.n+1;this.turn=0;this.round=1;
   this.over=false;this.winner=null;this.reason="";this.log=[];this.aborted=false;this.stats={turns:0};
   var self=this;this.players.forEach(function(p){self.deal(p)});
 }
@@ -39,7 +45,18 @@ var G=Game.prototype;
 G.say=function(msg,kind){this.log.push({msg:msg,kind:kind||"sys"});if(this.log.length>400)this.log.shift();this.io.changed()};
 G.pause=function(ms){return this.aborted?Promise.resolve():this.io.sleep(ms)};
 G.jokersHeld=function(){var h=0;this.players.forEach(function(p){if(p.alive)h+=p.jokers});return h};
-G.jokerWeight=function(){return this.totalJokers*Math.pow(this.jokerDecay,this.jokersHeld())};
+G.jokerFactor=function(k,e){
+  var m=1-(1-this.jokerBase)*Math.pow(this.jokerFade,k-1)+e;
+  return Math.min(0.95,Math.max(0.2,m));
+};
+G.jokerWeight=function(){
+  var w=this.totalJokers+this.jokerExtra,k=0,self=this;
+  this.players.forEach(function(p){if(p.alive)p.jn.forEach(function(e){w*=self.jokerFactor(++k,e)})});
+  if(k===0)w*=this.jokerBase; /* the first draw is as likely as the second Joker's */
+  return w;
+};
+G.gainJoker=function(p){p.jokers++;p.jn.push((this.rand()*2-1)*this.jokerJitter)};
+G.spendJoker=function(p){p.jokers--;p.jn.pop()};
 G.draw=function(){
   var w=this.jokerWeight(),x=this.rand()*(52+w);
   if(x<w)return JOK();
@@ -51,7 +68,7 @@ G.deal=function(p){
   this.refill(p);
 };
 G.refill=function(p){
-  while(p.offense.length<4){var c=this.draw();if(c.joker)p.jokers++;else p.offense.push(c)}
+  while(p.offense.length<4){var c=this.draw();if(c.joker)this.gainJoker(p);else p.offense.push(c)}
 };
 G.exposed=function(p){return p.alive&&p.defense.every(function(d){return d.dead})};
 G.liveCount=function(p){return p.defense.filter(function(d){return !d.dead}).length};
@@ -62,12 +79,12 @@ G.nextAlive=function(i){var j=i;for(var k=0;k<this.n;k++){j=(j+1)%this.n;if(this
 G.checkEnd=function(){
   if(this.over)return;
   for(var i=0;i<this.n;i++){var p=this.players[i];
-    if(p.alive&&p.jokers>=this.totalJokers){this.over=true;this.winner=i;this.reason="jokers";this.say(p.name+" has gathered a Joker for every seat. The jesters crown them sovereign!","win");return}}
+    if(p.alive&&p.jokers>=this.jokerGoal){this.over=true;this.winner=i;this.reason="jokers";this.say(p.name+" has gathered "+this.jokerGoal+" Jokers. The jesters crown them sovereign!","win");return}}
   var al=this.players.filter(function(p){return p.alive});
   if(al.length===1){this.over=true;this.winner=this.players.indexOf(al[0]);this.reason="last";this.say(al[0].name+" is the last King standing.","win")}
 };
 G.eliminate=function(i,why){
-  var p=this.players[i];p.alive=false;p.pending=null;p.jokers=0;
+  var p=this.players[i];p.alive=false;p.pending=null;p.jokers=0;p.jn=[];
   this.say(p.name+" "+why+" and is out of the game.","danger");this.io.fx("king",{t:i,res:"fallen"});this.checkEnd();
 };
 /* conversions */
@@ -78,7 +95,6 @@ G.convertOptions=function(p){
   if(by.Q>=2)o.push({key:"QQ",from:["Q","Q"],to:"K",label:"Two Queens → King"});
   if(by.K>=2)o.push({key:"KK",from:["K","K"],to:"A",label:"Two Kings → Ace"});
   if(p.jokers>0)["J","Q","K"].forEach(function(r){if(by[r]>=1)o.push({key:"joker:"+r,from:["Joker",r],to:"A",label:"Joker + "+RN[r]+" → Ace"})});
-  if(by.A>=3)["J","Q","K"].forEach(function(r){o.push({key:"AAA:"+r,from:["A","A","A"],to:r,label:"Three Aces → "+RN[r]})});
   if(by.A>=4)o.push({key:"AAAA",from:["A","A","A","A"],to:"Joker",label:"Four Aces → Joker"});
   return o;
 };
@@ -86,9 +102,8 @@ G.doConvert=function(pi,key){
   var p=this.players[pi],opt=this.convertOptions(p).filter(function(o){return o.key===key})[0];
   if(!opt)return false;
   var rem=function(r,n){for(var k=0;k<n;k++){var ix=p.offense.findIndex(function(c){return c.rank===r});p.offense.splice(ix,1)}};
-  if(key.indexOf("joker:")===0){p.jokers--;rem(key.slice(6),1)}
-  else if(key==="AAAA"){rem("A",4);p.jokers++}
-  else if(key.indexOf("AAA:")===0)rem("A",3);
+  if(key.indexOf("joker:")===0){this.spendJoker(p);rem(key.slice(6),1)}
+  else if(key==="AAAA"){rem("A",4);this.gainJoker(p)}
   else rem(opt.from[0],2);
   if(opt.to!=="Joker")p.offense.push(mk(opt.to,SUITS[Math.floor(this.rand()*4)]));
   this.refill(p);
@@ -168,8 +183,6 @@ G.botConvertStep=function(i,desperate){
   var dead=this.deadCount(p),key=null,self=this;
   var target=this.players.some(function(x,ix){return ix!==i&&x.alive&&self.exposed(x)});
   if(get("AAAA")&&!target&&!desperate)key="AAAA";
-  if(!key&&get("AAA:Q")&&!target&&lv!=="easy"&&dead>0&&cnt("Q")===0)key="AAA:Q";
-  if(!key&&get("AAA:K")&&!target&&lv!=="easy"&&this.exposed(p)&&cnt("K")===0)key="AAA:K";
   if(!key&&get("KK"))key="KK";
   if(!key){key=["joker:J","joker:Q","joker:K"].filter(get)[0]||null}
   if(!key&&get("QQ")&&(desperate||cnt("K")===0||lv==="hard"))key="QQ";

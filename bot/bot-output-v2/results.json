@@ -1,0 +1,283 @@
+{
+ "meta": {
+  "minutes": 15.0576,
+  "iterations": 452,
+  "games": 231424,
+  "workers": 8
+ },
+ "vs": [
+  {
+   "opp": "easy",
+   "n": 2,
+   "games": 504,
+   "win": 0.7658730158730159,
+   "chance": 0.5,
+   "ratio": 1.5317460317460319,
+   "meanRounds": 17.636904761904763,
+   "medRounds": 16,
+   "p90Rounds": 29,
+   "jokerEnd": 0.10317460317460317,
+   "lastKing": 0.8968253968253969,
+   "stalemate": 0
+  },
+  {
+   "opp": "easy",
+   "n": 3,
+   "games": 504,
+   "win": 0.6805555555555556,
+   "chance": 0.3333333333333333,
+   "ratio": 2.041666666666667,
+   "meanRounds": 21.432539682539684,
+   "medRounds": 19,
+   "p90Rounds": 36,
+   "jokerEnd": 0.03373015873015873,
+   "lastKing": 0.9662698412698413,
+   "stalemate": 0
+  },
+  {
+   "opp": "easy",
+   "n": 4,
+   "games": 504,
+   "win": 0.6607142857142857,
+   "chance": 0.25,
+   "ratio": 2.642857142857143,
+   "meanRounds": 23.849206349206348,
+   "medRounds": 21,
+   "p90Rounds": 40,
+   "jokerEnd": 0.00992063492063492,
+   "lastKing": 0.9900793650793651,
+   "stalemate": 0
+  },
+  {
+   "opp": "easy",
+   "n": 5,
+   "games": 504,
+   "win": 0.6408730158730159,
+   "chance": 0.2,
+   "ratio": 3.2043650793650795,
+   "meanRounds": 24.875,
+   "medRounds": 23,
+   "p90Rounds": 38,
+   "jokerEnd": 0.003968253968253968,
+   "lastKing": 0.996031746031746,
+   "stalemate": 0
+  },
+  {
+   "opp": "easy",
+   "n": 6,
+   "games": 504,
+   "win": 0.6170634920634921,
+   "chance": 0.16666666666666666,
+   "ratio": 3.7023809523809526,
+   "meanRounds": 27.51984126984127,
+   "medRounds": 25,
+   "p90Rounds": 43,
+   "jokerEnd": 0,
+   "lastKing": 1,
+   "stalemate": 0
+  },
+  {
+   "opp": "normal",
+   "n": 2,
+   "games": 504,
+   "win": 0.746031746031746,
+   "chance": 0.5,
+   "ratio": 1.492063492063492,
+   "meanRounds": 18.732142857142858,
+   "medRounds": 16,
+   "p90Rounds": 32,
+   "jokerEnd": 0.14087301587301587,
+   "lastKing": 0.8591269841269841,
+   "stalemate": 0
+  },
+  {
+   "opp": "normal",
+   "n": 3,
+   "games": 504,
+   "win": 0.6646825396825397,
+   "chance": 0.3333333333333333,
+   "ratio": 1.994047619047619,
+   "meanRounds": 21.688492063492063,
+   "medRounds": 19,
+   "p90Rounds": 36,
+   "jokerEnd": 0.04365079365079365,
+   "lastKing": 0.9563492063492064,
+   "stalemate": 0
+  },
+  {
+   "opp": "normal",
+   "n": 4,
+   "games": 504,
+   "win": 0.6051587301587301,
+   "chance": 0.25,
+   "ratio": 2.4206349206349205,
+   "meanRounds": 25.03174603174603,
+   "medRounds": 22,
+   "p90Rounds": 40,
+   "jokerEnd": 0.015873015873015872,
+   "lastKing": 0.9841269841269841,
+   "stalemate": 0
+  },
+  {
+   "opp": "normal",
+   "n": 5,
+   "games": 504,
+   "win": 0.5793650793650794,
+   "chance": 0.2,
+   "ratio": 2.896825396825397,
+   "meanRounds": 27.103174603174605,
+   "medRounds": 25,
+   "p90Rounds": 45,
+   "jokerEnd": 0.001984126984126984,
+   "lastKing": 0.998015873015873,
+   "stalemate": 0
+  },
+  {
+   "opp": "normal",
+   "n": 6,
+   "games": 504,
+   "win": 0.5714285714285714,
+   "chance": 0.16666666666666666,
+   "ratio": 3.4285714285714284,
+   "meanRounds": 28.876984126984127,
+   "medRounds": 26,
+   "p90Rounds": 45,
+   "jokerEnd": 0.001984126984126984,
+   "lastKing": 0.998015873015873,
+   "stalemate": 0
+  },
+  {
+   "opp": "hard",
+   "n": 2,
+   "games": 504,
+   "win": 0.6904761904761905,
+   "chance": 0.5,
+   "ratio": 1.380952380952381,
+   "meanRounds": 19.708333333333332,
+   "medRounds": 16,
+   "p90Rounds": 36,
+   "jokerEnd": 0.125,
+   "lastKing": 0.875,
+   "stalemate": 0
+  },
+  {
+   "opp": "hard",
+   "n": 3,
+   "games": 504,
+   "win": 0.621031746031746,
+   "chance": 0.3333333333333333,
+   "ratio": 1.8630952380952381,
+   "meanRounds": 21.904761904761905,
+   "medRounds": 19,
+   "p90Rounds": 37,
+   "jokerEnd": 0.041666666666666664,
+   "lastKing": 0.9583333333333334,
+   "stalemate": 0
+  },
+  {
+   "opp": "hard",
+   "n": 4,
+   "games": 504,
+   "win": 0.5892857142857143,
+   "chance": 0.25,
+   "ratio": 2.357142857142857,
+   "meanRounds": 25.09325396825397,
+   "medRounds": 22,
+   "p90Rounds": 41,
+   "jokerEnd": 0.017857142857142856,
+   "lastKing": 0.9821428571428571,
+   "stalemate": 0
+  },
+  {
+   "opp": "hard",
+   "n": 5,
+   "games": 504,
+   "win": 0.5833333333333334,
+   "chance": 0.2,
+   "ratio": 2.916666666666667,
+   "meanRounds": 26.251984126984127,
+   "medRounds": 24,
+   "p90Rounds": 41,
+   "jokerEnd": 0,
+   "lastKing": 1,
+   "stalemate": 0
+  },
+  {
+   "opp": "hard",
+   "n": 6,
+   "games": 504,
+   "win": 0.5,
+   "chance": 0.16666666666666666,
+   "ratio": 3,
+   "meanRounds": 27.976190476190474,
+   "medRounds": 26,
+   "p90Rounds": 41,
+   "jokerEnd": 0.003968253968253968,
+   "lastKing": 0.996031746031746,
+   "stalemate": 0
+  }
+ ],
+ "h2h": null,
+ "curve": [
+  {
+   "it": 0,
+   "min": 0,
+   "ratio": 1.2875,
+   "rounds": 27.421875
+  },
+  {
+   "it": 50,
+   "min": 1.04235,
+   "ratio": 2.065625,
+   "rounds": 24.759375
+  },
+  {
+   "it": 100,
+   "min": 1.7763333333333333,
+   "ratio": 2.5,
+   "rounds": 27.840625
+  },
+  {
+   "it": 150,
+   "min": 2.756866666666667,
+   "ratio": 2.28125,
+   "rounds": 23.4875
+  },
+  {
+   "it": 200,
+   "min": 4.90005,
+   "ratio": 2.61875,
+   "rounds": 27.05
+  },
+  {
+   "it": 250,
+   "min": 6.5506166666666665,
+   "ratio": 2.621875,
+   "rounds": 27.8375
+  },
+  {
+   "it": 300,
+   "min": 9.922066666666666,
+   "ratio": 2.578125,
+   "rounds": 27.6375
+  },
+  {
+   "it": 350,
+   "min": 11.544266666666667,
+   "ratio": 2.7125,
+   "rounds": 25.696875
+  },
+  {
+   "it": 400,
+   "min": 13.102766666666666,
+   "ratio": 2.5,
+   "rounds": 24.759375
+  },
+  {
+   "it": 450,
+   "min": 14.872783333333333,
+   "ratio": 2.40625,
+   "rounds": 22.821875
+  }
+ ]
+}
