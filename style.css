@@ -221,3 +221,27 @@ body{background-repeat:no-repeat}
 .linkwrap{display:flex;justify-content:center;width:min(100%,486px);margin-top:64px}
 .linkrow{display:flex;gap:12px;padding:8px 10px;border-radius:999px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.35)}
 .linkrow .btn{padding:7px 18px;font-size:.88rem}
+.tabrow{display:flex;justify-content:space-between;align-items:center;gap:10px 16px;flex-wrap:wrap}
+.tabs button{padding:7px 18px;font-weight:600}
+.spd{display:flex;align-items:center;gap:8px}
+.spd .seg button{padding:6px 10px;font-size:.85rem}
+.setup .field{background:var(--bg2);border:1px solid var(--line);color:var(--fg);border-radius:8px;padding:8px 10px;font:inherit;min-width:0}
+.setup .field.code{width:7.5em;font-family:var(--font-display);font-size:1.15rem;letter-spacing:.2em;text-transform:uppercase;text-align:center}
+.setup #on-name{flex:1 1 12em}
+.or{text-align:center;margin:2px 0}
+.err{color:#ff9d8e;font-size:.9rem}
+.codebox{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.codebox .code{font-family:var(--font-display);font-size:1.9rem;letter-spacing:.18em;color:var(--gold);font-weight:700;margin-right:auto}
+.gname{padding:8px 10px;border-radius:8px;border:1px dashed var(--line);color:var(--mute);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gname.joined{border-style:solid;color:var(--fg)}
+@media (max-width:480px){.codebox .code{font-size:1.6rem}.tabrow{gap:8px}}
+.onname{display:flex;flex-direction:column;gap:6px}
+.oncards{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.oncard{display:flex;flex-direction:column;gap:10px;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:14px}
+.oncard h3{font-size:1.2rem;color:var(--gold)}
+.oncard .meta{flex:1}
+.oncard .btn{width:100%;padding:10px 14px}
+.setup .oncard .field.code{width:100%;font-size:1.5rem;padding:9px 10px}
+@media (max-width:560px){.oncards{grid-template-columns:1fr}}
+.onname{flex-direction:row;align-items:center;gap:10px}
+.onname .field{flex:0 1 13em;padding:6px 10px}

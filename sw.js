@@ -1,7 +1,7 @@
 /* Network-first: always fetch fresh when online, fall back to cache offline.
    No version number to bump. */
 var CACHE = "fortitude";
-var CORE = ["./", "index.html", "style.css", "engine.js", "expert-weights.js", "expert.js", "game.js",
+var CORE = ["./", "index.html", "style.css", "engine.js", "expert-weights.js", "expert.js", "game.js", "net.js", "peerjs.min.js",
   "manifest.webmanifest", "favicon.svg", "favicon-32.png", "apple-touch-icon.png", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", function (e) {

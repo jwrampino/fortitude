@@ -7,7 +7,10 @@ function defSeats(){return [{name:"Challenger",bot:false,level:"normal"},{name:N
 function loadSeats(){try{var s=JSON.parse(localStorage.getItem("fortitude.seats")||"null");
   if(Array.isArray(s)&&s.length>=2&&s.length<=6)return s.map(function(x){return {name:(String(x.name||"").slice(0,16)==="You"?"Challenger":String(x.name||"").slice(0,16)),bot:!!x.bot,level:["easy","normal","hard","expert"].indexOf(x.level)>=0?x.level:"normal"}})}catch(e){}return defSeats()}
 function saveSeats(){try{localStorage.setItem("fortitude.seats",JSON.stringify(S.seats))}catch(e){}}
-var S={screen:"menu",seats:loadSeats(),game:null,viewer:null,sel:null,modal:null,speed:0.5,ctx:null,busy:false,fx:{},raf:0,over:null};
+function oname(){try{return localStorage.getItem("fortitude.oname")||""}catch(e){return ""}}
+function newOnline(){return {mode:"idle",name:oname(),code:"",busy:false,err:"",host:null,client:null,seats:null,lobby:null}}
+var S={screen:"menu",seats:loadSeats(),game:null,viewer:null,sel:null,modal:null,speed:0.5,ctx:null,busy:false,fx:{},raf:0,over:null,tab:"local",online:newOnline(),net:null,mySeat:null,startPending:false};
+try{var jp=new URLSearchParams(location.search).get("join");if(jp){S.tab="online";S.online.code=jp.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,5)}}catch(e){}
 var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s).replace(/[&<>"']/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]})};
 var isRed=function(s){return s==="♥"||s==="♦"};
@@ -89,7 +92,7 @@ function youHTML(){
   var canAct=!!S.ctx&&S.ctx.i===v&&!S.busy&&!S.modal;
   var tg=targeting();
   var hand;
-  if(!p.alive)hand='<p class="hint">You have fallen. The game plays on without you.</p><div class="acts"><button class="btn" data-act="speed">Speed: '+speedName()+"</button></div>";
+  if(!p.alive)hand='<p class="hint">You have fallen. The game plays on without you.</p><div class="acts">'+(guest()?"":'<button class="btn" data-act="speed">Speed: '+speedName()+"</button>")+"</div>";
   else{
     var cards=p.offense.map(function(c,i){return cardHTML(c,{act:canAct?"select":null,i:i,dis:!canAct,cls:S.sel===i?"sel":""})}).join("");
     var pool=p.jokers>0?'<div class="pool">★ Joker pool: '+p.jokers+" of "+g.jokerGoal+"</div>":"";
@@ -138,11 +141,74 @@ function menuHTML(){
     '<div class="steps"><div class="stepc">'+miniRow([["8","♥"],["5","♣"]])+"<b>Strike</b>A higher number destroys a defense.</div>"+
     '<div class="stepc">'+miniRow([["K","♠"]])+"<b>Expose</b>Four broken defenses leave the King bare.</div>"+
     '<div class="stepc">'+miniRow([["A","♦"]])+"<b>Execute</b>Only an Ace can end a King.</div></div><div class=\"linkwrap\"><div class=\"linkrow\"><button class=\"btn small primary\" data-act=\"github\">GitHub</button><button class=\"btn small primary\" data-act=\"share\">Share</button>"+(isStandalone()?"":"<button class=\"btn small primary\" data-act=\"install\">Install</button>")+"</div></div></section>"+
-    '<section class="setup"><h2>Take your seats</h2><div class="row">'+
-    '<button class="btn small" data-act="preset" data-p="duel">Duel a bot</button><button class="btn small" data-act="preset" data-p="solo3">You + 2 bots</button>'+
-    '<button class="btn small" data-act="preset" data-p="pass3">Pass &amp; play (3)</button><button class="btn small" data-act="preset" data-p="watch">Watch 4 bots</button></div>'+
-    seats+'<div class="row"><button class="btn small" data-act="addseat"'+(S.seats.length>=6?" disabled":"")+'>Add seat</button><span class="meta">'+"Hold "+(S.seats.length+1)+" Jokers to win outright. Pass-and-play hides hands between turns.</span></div>"+
-    '<div class="row"><button class="btn primary" data-act="start">Start game</button><button class="btn" data-act="rules">Rules</button></div></section></div>';
+    '<section class="setup"><h2>Take your seats</h2>'+tabsHTML()+(S.tab==="online"?onlineHTML():localHTML(seats))+"</section></div>";
+}
+
+function netOK(){return !!(F.Net&&F.Net.available())}
+function tabsHTML(){
+  var tb=function(v,l){return '<button data-act="tab" data-v="'+v+'" role="tab" aria-selected="'+(S.tab===v)+'" class="'+(S.tab===v?"on":"")+'">'+l+"</button>"};
+  return '<div class="tabrow"><div class="seg tabs" role="tablist">'+tb("local","Local")+tb("online","Online")+'</div><button class="btn small" data-act="speed">Speed: '+speedName()+"</button></div>";
+}
+function localHTML(seats){
+  return seats+'<div class="row"><button class="btn small" data-act="addseat"'+(S.seats.length>=6?" disabled":"")+'>Add seat</button><span class="meta">'+"Hold "+(S.seats.length+1)+" Jokers to win outright. Pass-and-play hides hands between turns.</span></div>"+
+    '<div class="row"><button class="btn primary" data-act="start">Start game</button><button class="btn" data-act="rules">Rules</button></div>';
+}
+function myName(){var o=S.online;return ((o.seats&&o.mode==="host"?o.seats[0].name:o.name)||"").trim().slice(0,16)||"Challenger"}
+function freeName(seats){return NAMES.filter(function(x){return !seats.some(function(q){return q.name===x})})[0]||"Bot"}
+function codeBox(code){
+  return '<div class="codebox"><span class="meta">Game code</span><b class="code" aria-label="Game code">'+esc(code)+'</b><button class="btn small" data-act="ocopy" data-v="code">Copy code</button><button class="btn small" data-act="ocopy" data-v="link">Copy invite link</button></div>';
+}
+function onlineHTML(){
+  var o=S.online,dis=o.busy?" disabled":"";
+  if(!netOK())return '<p class="meta">Online play isn\'t available right now. Check your connection and reload.</p>';
+  if(o.mode==="host")return hostLobbyHTML();
+  if(o.mode==="guest")return guestLobbyHTML();
+  return '<div class="onname"><label class="meta" for="on-name">Your name</label><input class="field" id="on-name" data-on="name" value="'+esc(o.name)+'" maxlength="16" placeholder="Challenger" autocomplete="off"></div>'+
+    '<div class="oncards">'+
+    '<div class="oncard"><h3>Host a table</h3><p class="meta">Start a game, then share the code. Fill the empty seats with friends or bots.</p><button class="btn primary" data-act="ohost"'+dis+'>'+(o.busy==="host"?"Creating…":"Host a game")+"</button></div>"+
+    '<div class="oncard"><h3>Join a table</h3><p class="meta">Have a code from a friend? Enter it here.</p><input class="field code" id="on-code" data-on="code" value="'+esc(o.code)+'" maxlength="5" placeholder="CODE" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="Game code"><button class="btn primary" data-act="ojoin"'+dis+'>'+(o.busy==="join"?"Joining…":"Join game")+"</button></div></div>"+
+    (o.err?'<p class="err" role="alert">'+esc(o.err)+"</p>":"");
+}
+function hostLobbyHTML(){
+  var o=S.online,h=o.host,seats=o.seats,open=h.openCount();
+  var rows=seats.map(function(s,i){
+    var you=i===0,guest=!you&&!s.bot&&h.conns[i];
+    var name=you||s.bot?'<input id="oseat-name-'+i+'" data-oseat="'+i+'" value="'+esc(s.name)+'" maxlength="16" aria-label="Seat '+(i+1)+' name">':
+      guest?'<span class="gname joined">'+esc(h.nameOf(i))+"</span>":'<span class="gname">Waiting for a player…</span>';
+    var seg=you?'<span class="meta">You</span>':'<div class="seg"><button data-act="oseattype" data-i="'+i+'" data-v="h" class="'+(s.bot?"":"on")+'">Human</button><button data-act="oseattype" data-i="'+i+'" data-v="b" class="'+(s.bot?"on":"")+'">Bot</button></div>';
+    var lv='<select data-olevel="'+i+'" aria-label="Bot level"'+(s.bot?"":" hidden")+'>'+["easy","normal","hard","expert"].map(function(l){return '<option value="'+l+'"'+(s.level===l?" selected":"")+">"+l[0].toUpperCase()+l.slice(1)+"</option>"}).join("")+"</select>";
+    var del=you?"":'<button class="btn small del" data-act="odelseat" data-i="'+i+'"'+(seats.length<=2?" disabled":"")+' aria-label="Remove seat">✕</button>';
+    return '<div class="seat"><span class="no">'+(i+1)+"</span>"+name+seg+lv+del+"</div>";
+  }).join("");
+  return codeBox(h.code)+rows+
+    '<div class="row"><button class="btn small" data-act="oaddseat"'+(seats.length>=6?" disabled":"")+'>Add seat</button><span class="meta">'+(open?"Waiting for "+open+" player"+(open>1?"s":"")+" to join.":"Everyone is here.")+" Hold "+(seats.length+1)+" Jokers to win outright.</span></div>"+
+    '<div class="row"><button class="btn primary" data-act="ostart"'+(open?" disabled":"")+'>Start game</button>'+(open?'<button class="btn" data-act="ofill">Fill open seats with bots</button>':"")+'<button class="btn" data-act="oclose">Close room</button></div>'+
+    (o.err?'<p class="err" role="alert">'+esc(o.err)+"</p>":"");
+}
+function guestLobbyHTML(){
+  var o=S.online,L=o.lobby;
+  var rows=(L?L.seats:[]).map(function(s,i){
+    var tag=s.you?"You":s.open?"Open":s.bot?"Bot · "+s.level:"Player";
+    return '<div class="seat"><span class="no">'+(i+1)+'</span><span class="gname'+(s.open?"":" joined")+'">'+(s.open?"Waiting for a player…":esc(s.name))+'</span><span class="meta">'+tag+"</span></div>";
+  }).join("");
+  return codeBox(o.client.code)+rows+'<p class="meta">Waiting for the host to start the game…</p><div class="row"><button class="btn" data-act="oleave">Leave table</button></div>';
+}
+function syncOnline(){
+  var o=S.online,n=$("#on-name"),c=$("#on-code");
+  if(n)o.name=n.value;if(c)o.code=c.value;
+  document.querySelectorAll("[data-oseat]").forEach(function(el){if(o.seats&&o.seats[+el.dataset.oseat])o.seats[+el.dataset.oseat].name=el.value});
+  if(o.seats&&o.mode==="host")o.name=o.seats[0].name;
+  try{localStorage.setItem("fortitude.oname",o.name)}catch(e){}
+}
+function copyText(t){
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(function(){toast("Copied")},function(){toast(t)});
+  else toast(t);
+}
+function overBtns(){
+  var n=S.net;
+  if(!n)return '<div class="row"><button class="btn primary" data-act="rematch">Rematch</button><button class="btn" data-act="tomenu">Back to menu</button></div>';
+  if(n.role==="host")return '<div class="row"><button class="btn primary" data-act="rematch">Rematch</button><button class="btn" data-act="tomenu">Back to lobby</button></div>';
+  return '<div class="row"><span class="meta">Waiting for the host to start a rematch…</span><button class="btn" data-act="tomenu">Leave table</button></div>';
 }
 /* ---------- modals ---------- */
 function handCards(p,fn){return '<div class="hand">'+p.offense.map(function(c,i){var r=fn(c,i);return cardHTML(c,{act:r.act,i:i,dis:!r.act,cls:r.dim?"dim":""})}).join("")+"</div>"}
@@ -159,6 +225,8 @@ function modalHTML(){
       '<div class="row">'+(o.length?o.map(function(x){return '<button class="chip" data-act="doconv" data-k="'+x.key+'">'+esc(x.label)+"</button>"}).join(""):'<span class="meta">Nothing to convert right now.</span>')+"</div>"+
       (p.jokers?'<div class="pool">★ Joker pool: '+p.jokers+"</div>":"")+'<div class="row"><button class="btn primary" data-act="closemodal">Done</button></div>');
   }
+  if(m.type==="leave"){var hostLeaving=S.net&&S.net.role==="host";
+    return wrap("<h2>Leave the table?</h2><p>"+(hostLeaving?"The game ends for everyone and the room closes.":"A bot takes your seat and the game goes on without you.")+'</p><div class="row"><button class="btn danger" data-act="doleave">Leave</button><button class="btn" data-act="closemodal">Stay</button></div>');}
   if(m.type==="pass")return wrap("<h2>Discard &amp; pass</h2><p>Choose a card to discard. Your turn ends and you draw a replacement.</p>"+handCards(p,function(){return {act:"dopass"}})+'<div class="row"><button class="btn" data-act="closemodal">Cancel</button></div>');
   if(m.type==="concede")return wrap("<h2>Concede?</h2><p>Your King falls and you leave the table.</p><div class=\"row\"><button class=\"btn danger\" data-act=\"doconcede\">Concede</button><button class=\"btn\" data-act=\"closemodal\">Keep playing</button></div>");
   if(m.type==="tie"){
@@ -173,15 +241,15 @@ function modalHTML(){
     for(k2=0;k2<nj;k2++){jk+='<span class="jw" style="--r:'+((k2-(nj-1)/2)*9)+'deg;animation-delay:'+(k2*0.12)+'s">'+cardHTML({rank:"JOKER",joker:true,suit:""},{})+"</span>"}
     var cols=["var(--gold)","var(--crim)","var(--ok)","var(--card)","#6fa8ff"];
     for(k2=0;k2<46;k2++){cf+='<i style="left:'+((k2*37)%100)+'%;background:'+cols[k2%5]+';animation-duration:'+(3+(k2%5)*0.6)+'s;animation-delay:-'+((k2*0.29)%4)+'s"></i>'}
-    return wrap('<div class="confetti" aria-hidden="true">'+cf+'</div><div class="jk">'+jk+"</div><h2>The Jesters have gathered!</h2><p>"+esc(w.name)+" gathered "+nj+" Jokers and took the crown after "+g.round+(g.round===1?" round":" rounds")+". The fools always get the last laugh.</p><div class=\"row\"><button class=\"btn primary\" data-act=\"rematch\">Rematch</button><button class=\"btn\" data-act=\"tomenu\">Back to menu</button></div>",false,"fest");
+    return wrap('<div class="confetti" aria-hidden="true">'+cf+'</div><div class="jk">'+jk+"</div><h2>The Jesters have gathered!</h2><p>"+esc(w.name)+" gathered "+nj+" Jokers and took the crown after "+g.round+(g.round===1?" round":" rounds")+". The fools always get the last laugh.</p>"+overBtns()+"",false,"fest");
   }
     if(w&&g.reason==="last"){
     var em="",k3,others=g.players.filter(function(q,i){return i!==g.winner}).map(function(q){return esc(q.name)}).join(", ");
     for(k3=0;k3<26;k3++){em+='<i style="left:'+((k3*29+7)%100)+'%;width:'+(3+k3%3)+'px;height:'+(3+k3%3)+'px;animation-duration:'+(3.5+(k3%6)*0.7)+'s;animation-delay:-'+((k3*0.37)%5)+'s"></i>'}
     var head=S.viewer===g.winner?"Victory is yours":"The crown goes to "+esc(w.name);
-    return wrap('<div class="rays" aria-hidden="true"></div><div class="embers" aria-hidden="true">'+em+'</div><div class="crownwrap" aria-hidden="true">'+CROWN+"</div><h2>"+head+"</h2><p>Last King standing after "+g.round+(g.round===1?" round":" rounds")+". Fallen: "+others+".</p><div class=\"row\"><button class=\"btn primary\" data-act=\"rematch\">Rematch</button><button class=\"btn\" data-act=\"tomenu\">Back to menu</button></div>",false,"vict");
+    return wrap('<div class="rays" aria-hidden="true"></div><div class="embers" aria-hidden="true">'+em+'</div><div class="crownwrap" aria-hidden="true">'+CROWN+"</div><h2>"+head+"</h2><p>Last King standing after "+g.round+(g.round===1?" round":" rounds")+". Fallen: "+others+".</p>"+overBtns()+"",false,"vict");
   }
-  return wrap("<h2>Stalemate</h2><p>The table reached a stalemate after "+g.round+" rounds.</p><div class=\"row\"><button class=\"btn primary\" data-act=\"rematch\">Rematch</button><button class=\"btn\" data-act=\"tomenu\">Back to menu</button></div>");
+  return wrap("<h2>Stalemate</h2><p>The table reached a stalemate after "+g.round+" rounds.</p>"+overBtns()+"");
   }
   return "";
 }
@@ -190,7 +258,7 @@ function render(){
   if(S.screen==="menu"){root.innerHTML=menuHTML();top.innerHTML='<button class="btn small" data-act="rules">Rules</button>'}
   else{
     root.innerHTML=gameHTML();
-    top.innerHTML='<span class="meta">'+(S.game.over?"Finished":"Round "+S.game.round)+'</span><button class="btn small" data-act="speed">Speed: '+speedName()+'</button><button class="btn small" data-act="rules">Rules</button>';
+    top.innerHTML='<span class="meta">'+(S.game.over?"Finished":"Round "+S.game.round)+'</span>'+(guest()?"":'<button class="btn small" data-act="speed">Speed: '+speedName()+"</button>")+'<button class="btn small" data-act="rules">Rules</button>';
     var ol=$("#logol");if(ol)ol.scrollTop=ol.scrollHeight;
   }
   $("#modal-root").innerHTML=modalHTML();
@@ -198,6 +266,7 @@ function render(){
 window.__FORT={S:S,render:render};
 /* ---------- flow ---------- */
 function ensureViewer(i,reason){
+  if(S.net){S.viewer=S.mySeat;return Promise.resolve()}
   var hc=hcount();
   if(hc<=1){S.viewer=hc===1?humans()[0]:null;return Promise.resolve()}
   if(S.viewer===i)return Promise.resolve();
@@ -206,14 +275,16 @@ function ensureViewer(i,reason){
     S.modal={type:"handoff",name:S.game.players[i].name,reason:reason||"It's your turn.",res:res};render();
   }).then(function(){S.viewer=i;S.modal=null;render()});
 }
+function applyFx(kind,d){
+  if(kind==="slot"){var k="s"+d.t+"-"+d.s;S.fx[k]=Date.now()+1000;S.fx[k+"r"]=d.res;setTimeout(queueRender,1050)}
+  queueRender();
+}
+function guest(){return S.net&&S.net.role==="guest"?S.net.client:null}
 function makeIO(){
   var io={
     sleep:function(ms){return sleep(ms)},
     changed:function(){if(S.game&&S.game.io===io)queueRender()},
-    fx:function(kind,d){
-      if(kind==="slot"){var k="s"+d.t+"-"+d.s;S.fx[k]=Date.now()+1000;S.fx[k+"r"]=d.res;setTimeout(queueRender,1050)}
-      queueRender();
-    },
+    fx:function(kind,d){applyFx(kind,d)},
     turnStart:function(){queueRender()},
     humanTurn:function(i){
       return new Promise(function(res){
@@ -234,7 +305,7 @@ async function endTurn(){
   S.busy=true;S.sel=null;render();
   await sleep(700);
   S.busy=false;S.ctx=null;
-  if(hcount()>1)S.viewer=null;
+  if(!S.net&&hcount()>1)S.viewer=null;
   render();c.res();
 }
 function syncNames(){document.querySelectorAll("[data-name]").forEach(function(el){S.seats[+el.dataset.name].name=el.value})}
@@ -258,34 +329,88 @@ function abort(){
     g.aborted=true;
     var m=S.modal;S.modal=null;
     if(m&&m.res){m.type==="tie"?m.res(-1):m.res()}
-    if(S.ctx){S.ctx.res();S.ctx=null}
+    if(S.ctx){if(S.ctx.res)S.ctx.res();S.ctx=null}
   }
   S.modal=null;S.game=null;S.screen="menu";S.viewer=null;S.busy=false;render();
 }
 function myIdx(){return S.ctx?S.ctx.i:null}
 async function afterAction(){if(S.game.over)await endTurn();else render()}
+/* ---------- online ---------- */
+function fillOpen(){
+  var o=S.online,h=o.host;if(!h)return;
+  o.seats.forEach(function(s,i){if(i>0&&!s.bot&&!h.conns[i]){s.bot=true;s.level="normal";s.name=freeName(o.seats)}});
+  h.setSeats(o.seats);
+}
+function startOnline(){
+  var o=S.online,h=o.host,nm=myName();
+  o.seats[0].name=nm;try{localStorage.setItem("fortitude.oname",nm)}catch(e){}
+  h.setSeats(o.seats);
+  var gs=h.seatsForGame(),used={};
+  gs.forEach(function(s,i){
+    var n=(s.name||"").trim()||(s.bot?NAMES[i%NAMES.length]:"Player "+(i+1));
+    while(used[n.toLowerCase()])n=n.slice(0,13)+" "+(i+1);
+    used[n.toLowerCase()]=1;s.name=n;
+  });
+  var g=new Game(gs,h.wrapIO(makeIO()));
+  S.net={role:"host",host:h};S.mySeat=0;S.viewer=0;
+  S.game=g;S.screen="game";S.modal=null;S.ctx=null;S.sel=null;S.busy=false;S.fx={};
+  render();h.begin(g);g.run();
+}
+function wireClient(c){
+  c.on("lobby",function(m){if(S.online.client!==c)return;S.online.lobby=m;if(S.screen==="menu"){syncOnline();render()}});
+  c.on("start",function(){S.modal=null;S.ctx=null;S.sel=null;S.busy=false;S.fx={};S.startPending=true;S.net={role:"guest",client:c};S.mySeat=c.seat});
+  c.on("state",function(g,fx){
+    if(S.online.client!==c)return;
+    S.game=g;
+    if(S.startPending||S.screen!=="game"){S.startPending=false;S.screen="game";S.viewer=S.mySeat}
+    fx.forEach(function(f){applyFx(f[0],f[1])});
+    if(S.ctx&&(g.over||g.turn!==S.mySeat)){S.ctx=null;S.busy=false}
+    if(g.over&&(!S.modal||S.modal.type!=="over")){S.ctx=null;S.modal={type:"over"}}
+    queueRender();
+  });
+  c.on("turn",function(){S.ctx={i:S.mySeat,res:null};S.sel=null;S.busy=false;queueRender()});
+  c.on("tie",function(info){S.modal={type:"tie",defIdx:S.mySeat,info:info,res:function(ix){c.answerTie(ix)}};render()});
+  c.on("err",function(m){toast(m);S.busy=false;render()});
+  c.on("close",function(why){
+    if(S.online.client!==c)return;
+    S.online=newOnline();S.net=null;S.game=null;S.screen="menu";S.tab="online";S.modal=null;S.ctx=null;S.viewer=null;S.busy=false;
+    toast(why);render();
+  });
+}
+/* host at game over goes back to the lobby; anyone else leaves the table */
+function leaveOnline(){
+  var n=S.net,o=S.online;
+  if(n&&n.role==="host"&&S.game&&S.game.over){S.net=null;S.game=null;S.screen="menu";S.tab="online";S.modal=null;S.ctx=null;S.viewer=null;S.busy=false;render();return}
+  if(n&&n.role==="host"){abort();if(o.host)o.host.close("The host ended the game");S.online=newOnline();S.net=null;S.tab="online";render();return}
+  var c=o.client;S.online=newOnline();S.net=null;S.game=null;S.screen="menu";S.tab="online";S.modal=null;S.ctx=null;S.viewer=null;S.busy=false;
+  if(c)c.leave();
+  render();
+}
 var ACT={
   select:function(d){S.sel=S.sel===d.i?null:d.i;render()},
   strike:async function(d){
     var i=myIdx(),hi=S.sel;if(i==null||hi==null)return;
     S.sel=null;S.busy=true;render();
+    var G=guest();if(G){G.strike(hi,d.t,d.s);return}
     await S.game.attackDefense(i,d.t,d.s,hi);await endTurn();
   },
   aceking:async function(d){
     var i=myIdx(),hi=S.sel;if(i==null||hi==null)return;
+    var G=guest();if(G){S.sel=null;S.busy=true;render();G.ace(hi,d.t);return}
     S.sel=null;S.busy=true;S.game.aceAttack(i,d.t,hi);render();await endTurn();
   },
   queen:async function(){
     var i=myIdx(),hi=S.sel;if(i==null||hi==null)return;
+    var G=guest();if(G){S.sel=null;S.busy=true;render();G.queen(hi);return}
     if(!S.game.queen(i,hi))return;await endTurn();
   },
-  defend:function(d){S.game.defendAce(myIdx(),d.k);S.sel=null;render()},
+  defend:function(d){var G=guest();if(G){G.defend(d.k);S.sel=null;render();return}S.game.defendAce(myIdx(),d.k);S.sel=null;if(S.game.over){S.modal=null;endTurn()}else render()},
   convert:function(){S.modal={type:"convert"};render()},
-  doconv:function(d){S.game.doConvert(myIdx(),d.k);S.sel=null;if(S.game.over){S.modal=null;endTurn()}else render()},
+  doconv:function(d){var G=guest();if(G){G.convert(d.k);S.sel=null;return}S.game.doConvert(myIdx(),d.k);S.sel=null;if(S.game.over){S.modal=null;endTurn()}else render()},
   pass:function(){S.modal={type:"pass"};render()},
-  dopass:async function(d){S.modal=null;S.game.discardPass(myIdx(),d.i);await endTurn()},
+  dopass:async function(d){S.modal=null;var G=guest();if(G){S.sel=null;S.busy=true;render();G.pass(d.i);return}S.game.discardPass(myIdx(),d.i);await endTurn()},
   concede:function(){S.modal={type:"concede"};render()},
-  doconcede:async function(){S.modal=null;S.game.eliminate(myIdx(),"concedes");await endTurn()},
+  doconcede:async function(){S.modal=null;var G=guest();if(G){S.busy=true;render();G.concede();return}S.game.eliminate(myIdx(),"concedes");await endTurn()},
   tieans:function(d){var m=S.modal;S.modal=null;render();m.res(d.i)},
   tiefall:function(){var m=S.modal;S.modal=null;render();m.res(-1)},
   handoffok:function(){var m=S.modal;m.res()},
@@ -304,16 +429,44 @@ var ACT={
     else if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(function(){toast("Link copied")},function(){toast(url)})}
     else toast(url);
   },
-  rematch:function(){startGame()},
-  tomenu:function(){abort()},
-  start:startGame,
-  preset:function(d){
-    var h=function(n){return {name:n,bot:false,level:"normal"}},b=function(i,l){return {name:NAMES[i],bot:true,level:l||"normal"}};
-    syncNames();
-    var keep=S.seats[0]&&!S.seats[0].bot&&S.seats[0].name?S.seats[0].name:"Challenger";
-    S.seats=d.p==="duel"?[h(keep),b(0,"hard")]:d.p==="solo3"?[h(keep),b(0),b(1)]:d.p==="pass3"?[h("Player 1"),h("Player 2"),h("Player 3")]:[b(0),b(1),b(2),b(3)];
-    render();
+  rematch:function(){if(S.net&&S.net.role==="host"){fillOpen();startOnline()}else if(!S.net)startGame()},
+  tomenu:function(){
+    if(!S.net){abort();return}
+    if(S.game&&!S.game.over){S.modal={type:"leave"};render();return}
+    leaveOnline();
   },
+  doleave:function(){S.modal=null;leaveOnline()},
+  tab:function(d){syncNames();syncOnline();S.tab=d.v;render()},
+  ohost:function(){
+    var o=S.online;if(o.busy)return;syncOnline();o.busy="host";o.err="";render();
+    F.Net.create().then(function(h){
+      o.busy=false;o.host=h;o.mode="host";o.seats=[{name:myName(),bot:false,level:"normal"},{name:"",bot:false,level:"normal"}];
+      h.setSeats(o.seats);
+      var rl=function(){if(S.online===o&&S.screen==="menu"&&S.tab==="online"&&o.mode==="host"){syncOnline();render()}};
+      h.on("lobby",rl);h.on("leave",rl);h.on("join",function(s,n){toast(n+" joined");rl()});
+      render();
+    },function(e){o.busy=false;o.err=e.message;render()});
+  },
+  ojoin:function(){
+    var o=S.online;if(o.busy)return;syncOnline();
+    if(!o.code||o.code.length<4){o.err="Enter the game code";render();return}
+    o.busy="join";o.err="";render();
+    F.Net.join(o.code,myName()).then(function(c){
+      o.busy=false;o.client=c;o.mode="guest";o.lobby=c.lobby;wireClient(c);render();
+    },function(e){o.busy=false;o.err=e.message+(/connect to that game/.test(e.message)?". Some strict networks block direct connections.":"");render()});
+  },
+  oleave:function(){leaveOnline()},
+  oclose:function(){var o=S.online;if(o.host)o.host.close("The host closed the room");S.online=newOnline();render()},
+  ocopy:function(d){var o=S.online,code=o.host?o.host.code:o.client&&o.client.code;if(!code)return;copyText(d.v==="link"?location.origin+location.pathname+"?join="+code:code)},
+  oseattype:function(d){
+    var o=S.online,s=o.seats[d.i];if(!s||d.i===0)return;syncOnline();
+    s.bot=d.v==="b";s.name=s.bot?freeName(o.seats):"";o.host.setSeats(o.seats);render();
+  },
+  oaddseat:function(){var o=S.online;if(o.seats.length>=6)return;syncOnline();o.seats.push({name:"",bot:false,level:"normal"});o.host.setSeats(o.seats);render()},
+  odelseat:function(d){var o=S.online;if(d.i===0||o.seats.length<=2)return;syncOnline();o.seats.splice(d.i,1);o.host.setSeats(o.seats);render()},
+  ofill:function(){fillOpen();render()},
+  ostart:function(){var o=S.online;if(!o.host)return;syncOnline();if(o.host.openCount()>0){toast("Waiting for players to join");return}startOnline()},
+  start:startGame,
   seattype:function(d){syncNames();S.seats[d.i].bot=d.v==="b";if(S.seats[d.i].bot&&/^(You|Challenger|Player \d)$/.test(S.seats[d.i].name))S.seats[d.i].name=NAMES[d.i%NAMES.length];render()},
   addseat:function(){
     syncNames();var n=NAMES.filter(function(x){return !S.seats.some(function(s){return s.name===x})})[0]||"Bot";
@@ -328,8 +481,22 @@ document.addEventListener("click",function(e){
   var fn=ACT[el.dataset.act];
   if(fn&&!(S.busy&&["select","strike","aceking","queen","defend","convert","pass","concede"].indexOf(el.dataset.act)>=0))fn(d);
 });
-document.addEventListener("input",function(e){var el=e.target;if(el.dataset&&el.dataset.name!=null)S.seats[+el.dataset.name].name=el.value});
-document.addEventListener("change",function(e){var el=e.target;if(el.dataset&&el.dataset.level!=null)S.seats[+el.dataset.level].level=el.value});
-document.addEventListener("keydown",function(e){if(e.key==="Escape")ACT.closemodal()});
+document.addEventListener("input",function(e){
+  var el=e.target,d=el.dataset;if(!d)return;
+  if(d.name!=null)S.seats[+d.name].name=el.value;
+  else if(d.on==="name"){S.online.name=el.value;try{localStorage.setItem("fortitude.oname",el.value)}catch(x){}}
+  else if(d.on==="code"){var v=el.value.toUpperCase().replace(/[^A-Z0-9]/g,"");if(v!==el.value)el.value=v;S.online.code=v}
+  else if(d.oseat!=null&&S.online.seats&&S.online.seats[+d.oseat])S.online.seats[+d.oseat].name=el.value;
+});
+document.addEventListener("change",function(e){
+  var el=e.target,d=el.dataset;if(!d)return;
+  if(d.level!=null)S.seats[+d.level].level=el.value;
+  else if(d.olevel!=null&&S.online.seats&&S.online.seats[+d.olevel])S.online.seats[+d.olevel].level=el.value;
+});
+document.addEventListener("keydown",function(e){
+  if(e.key==="Escape")ACT.closemodal();
+  else if(e.key==="Enter"&&e.target&&e.target.id==="on-code")ACT.ojoin();
+});
+addEventListener("pagehide",function(){var o=S.online;try{if(o.host)o.host.close("The host left the game");else if(o.client)o.client.leave()}catch(e){}});
 render();
 })();
