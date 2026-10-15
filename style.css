@@ -72,6 +72,7 @@ button.card:hover:enabled{transform:translateY(-6px)}
 .opps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr));gap:14px}
 .you{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:16px;align-items:start}
 .hand{display:flex;flex-wrap:wrap;gap:10px;padding-top:16px;--cw:clamp(62px,12vw,98px)}
+.handbox .hand{display:grid;grid-template-columns:repeat(4,minmax(0,var(--cw)));justify-content:start}
 .pool{display:flex;gap:8px;align-items:center;color:var(--gold);font-size:.85rem;margin-top:4px}
 .handbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px 14px;min-width:0}
 .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
