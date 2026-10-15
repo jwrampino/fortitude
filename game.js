@@ -17,6 +17,10 @@ function hcount(){return S.seats.filter(function(s){return !s.bot}).length}
 function sleep(ms){return S.speed===0?Promise.resolve():new Promise(function(r){setTimeout(r,ms/S.speed)})}
 function queueRender(){if(S.raf)return;S.raf=requestAnimationFrame(function(){S.raf=0;render()})}
 var tt=0;
+var installEvt=null;
+function isStandalone(){try{return (window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true}catch(e){return false}}
+addEventListener("beforeinstallprompt",function(e){e.preventDefault();installEvt=e});
+addEventListener("appinstalled",function(){installEvt=null;var b=document.querySelector('[data-act="install"]');if(b)b.remove()});
 function toast(m){var t=$("#toast");t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(function(){t.hidden=true},2600)}
 /* ---------- card markup ---------- */
 function cardHTML(c,o){o=o||{};
@@ -130,10 +134,10 @@ function menuHTML(){
       '<select data-level="'+i+'" aria-label="Bot level"'+(s.bot?"":" hidden")+'>'+["easy","normal","hard","expert"].map(function(l){return '<option value="'+l+'"'+(s.level===l?" selected":"")+">"+l[0].toUpperCase()+l.slice(1)+"</option>"}).join("")+"</select>"+
       '<button class="btn small del" data-act="delseat" data-i="'+i+'"'+(S.seats.length<=2?" disabled":"")+' aria-label="Remove seat">✕</button></div>';
   }).join("");
-  return '<div class="menu"><section class="hero"><div class="herocrown" aria-hidden="true">'+CROWN+'</div><h1>Fortitude</h1><p class="tag">Be the last king standing.</p>'+
+  return '<div class="menu"><section class="hero"><div class="herocrown" aria-hidden="true">'+CROWN+'</div><h1>Fortitude</h1><p class="tag">A card game of kings, bluffs and bargains.</p>'+
     '<div class="steps"><div class="stepc">'+miniRow([["8","♥"],["5","♣"]])+"<b>Strike</b>A higher number destroys a defense.</div>"+
     '<div class="stepc">'+miniRow([["K","♠"]])+"<b>Expose</b>Four broken defenses leave the King bare.</div>"+
-    '<div class="stepc">'+miniRow([["A","♦"]])+"<b>Execute</b>Only an Ace can end a King.</div></div><div class=\"linkwrap\"><div class=\"linkrow\"><button class=\"btn small primary\" data-act=\"github\">GitHub</button><button class=\"btn small primary\" data-act=\"share\">Share link</button></div></div></section>"+
+    '<div class="stepc">'+miniRow([["A","♦"]])+"<b>Execute</b>Only an Ace can end a King.</div></div><div class=\"linkwrap\"><div class=\"linkrow\"><button class=\"btn small primary\" data-act=\"github\">GitHub</button><button class=\"btn small primary\" data-act=\"share\">Share</button>"+(isStandalone()?"":"<button class=\"btn small primary\" data-act=\"install\">Install</button>")+"</div></div></section>"+
     '<section class="setup"><h2>Take your seats</h2><div class="row">'+
     '<button class="btn small" data-act="preset" data-p="duel">Duel a bot</button><button class="btn small" data-act="preset" data-p="solo3">You + 2 bots</button>'+
     '<button class="btn small" data-act="preset" data-p="pass3">Pass &amp; play (3)</button><button class="btn small" data-act="preset" data-p="watch">Watch 4 bots</button></div>'+
@@ -288,10 +292,15 @@ var ACT={
   closemodal:function(){if(S.modal&&!S.modal.res){S.modal=null;render()}},
   rules:function(){if(!S.modal||!S.modal.res){S.modal={type:"rules"};render()}},
   speed:function(){S.speed=S.speed===0.5?1:S.speed===1?0:0.5;render()},
+  install:function(){
+    if(installEvt){var e=installEvt;installEvt=null;e.prompt();e.userChoice.then(function(c){if(c&&c.outcome==="accepted")toast("Installing\u2026")},function(){});return}
+    if(/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1))toast("Tap Share, then Add to Home Screen");
+    else toast("Use your browser menu: Install app");
+  },
   github:function(){window.open("https://github.com/jwrampino/fortitude","_blank","noopener")},
   share:function(){
     var url=location.href.split("#")[0].split("?")[0];
-    if(navigator.share){navigator.share({title:"Fortitude",url:url}).catch(function(){})}
+    if(navigator.share){navigator.share({title:"Fortitude",text:"A card game of kings, bluffs and bargains.",url:url}).catch(function(){})}
     else if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(function(){toast("Link copied")},function(){toast(url)})}
     else toast(url);
   },
